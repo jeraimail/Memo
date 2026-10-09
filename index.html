@@ -3,153 +3,229 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Test notifications — Mémo</title>
+<title>Mémo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#FAF9F5; --fg:#1F1D1A; --muted:#8A8477; --card:#FFFFFF; --line:#E6E1D8; --ok:#3E9B8F; --err:#C94A4A;
+  --bg:#FAF9F5; --fg:#1F1D1A; --muted:#8A8477; --card:#FFFFFF; --line:#E6E1D8;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){ --bg:#1C1B18; --fg:#F2EFE8; --muted:#A39D8E; --card:#262420; --line:#3A362F; }}
 :root[data-theme="dark"]{ --bg:#1C1B18; --fg:#F2EFE8; --muted:#A39D8E; --card:#262420; --line:#3A362F; }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:'Manrope',system-ui,sans-serif;min-height:100%}
-.wrap{max-width:480px;margin:0 auto;padding:24px 20px 40px 20px}
-h1{font-size:22px;font-weight:800;margin:0 0 4px 0}
-.sub{font-size:13px;color:var(--muted);margin:0 0 24px 0;line-height:1.5}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
-.card h2{font-size:14px;font-weight:700;margin:0 0 6px 0}
-.card p{font-size:13px;color:var(--muted);margin:0 0 12px 0;line-height:1.45}
-button{width:100%;padding:13px;border-radius:10px;border:none;background:var(--fg);color:var(--bg);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
-button:disabled{opacity:.45;cursor:default}
-.status{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;display:inline-block;margin-bottom:10px}
-.status.pending{background:#E6E1D8;color:var(--muted)}
-.status.ok{background:#3E9B8F26;color:var(--ok)}
-.status.err{background:#C94A4A26;color:var(--err)}
-#log{font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.6;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;max-height:220px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;color:var(--muted)}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'Manrope',system-ui,sans-serif}
+#app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
+.chip{font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;white-space:nowrap;border:1px solid var(--line);color:var(--muted);background:var(--card)}
+.chip.active{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.card{display:flex;align-items:center;gap:12px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+input.text,select.text{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--fg);background:var(--card);font-family:inherit}
+label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;display:block}
+.btn{width:100%;padding:14px;border-radius:12px;background:var(--fg);color:var(--bg);border:none;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}
+.btn.secondary{background:transparent;color:var(--err,#C94A4A);border:1px solid var(--line)}
+.fab{width:44px;height:44px;border-radius:12px;background:var(--fg);color:var(--bg);border:none;font-size:22px;line-height:1;cursor:pointer}
+.back{width:40px;height:40px;background:none;border:none;color:var(--fg);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.hidden{display:none !important}
+.empty{text-align:center;color:var(--muted);font-size:13px;padding:40px 20px;line-height:1.6}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Test notifications v2</h1>
-  <p class="sub">Cette fois, les notifications passent par le Service Worker (obligatoire sur Android Chrome). Fais les tests dans l'ordre.</p>
+<div id="app">
 
-  <div class="card">
-    <span id="s0" class="status pending">En cours…</span>
-    <h2>0 — Enregistrement du Service Worker</h2>
-    <p>Se fait automatiquement au chargement de la page.</p>
+  <!-- ÉCRAN LISTE -->
+  <div id="screenList">
+    <div style="padding:20px 20px 12px 20px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:24px;font-weight:800">Mémo</div>
+      <button class="fab" id="btnAdd">+</button>
+    </div>
+    <div id="filters" style="display:flex;gap:8px;padding:4px 20px 16px 20px;overflow-x:auto"></div>
+    <div id="list" style="flex:1;overflow-y:auto;padding:0 20px 20px 20px;display:flex;flex-direction:column;gap:10px"></div>
   </div>
 
-  <div class="card">
-    <span id="s1" class="status pending">Pas encore testé</span>
-    <h2>1 — Permission de notification</h2>
-    <button id="b1">Demander la permission</button>
+  <!-- ÉCRAN ÉDITION -->
+  <div id="screenEdit" class="hidden" style="display:flex;flex-direction:column;height:100%">
+    <div style="padding:20px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)">
+      <button class="back" id="btnBack">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div id="editTitle" style="font-size:17px;font-weight:800">Nouveau mémo</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px">
+      <div>
+        <label class="field" for="inpTitre">Titre du mémo</label>
+        <input class="text" id="inpTitre" type="text" placeholder="Ex: Arroser les plantes">
+      </div>
+      <div>
+        <label class="field">Catégorie</label>
+        <div id="catPicker" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+    <div style="padding:16px 20px 24px 20px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px">
+      <button class="btn" id="btnSave">Enregistrer le mémo</button>
+      <button class="btn secondary hidden" id="btnDelete">Supprimer ce mémo</button>
+    </div>
   </div>
 
-  <div class="card">
-    <span id="s2" class="status pending">Pas encore testé</span>
-    <h2>2 — Notification immédiate</h2>
-    <button id="b2" disabled>Envoyer maintenant</button>
-  </div>
-
-  <div class="card">
-    <span id="s3" class="status pending">Pas encore testé</span>
-    <h2>3 — Notification différée (15s)</h2>
-    <p>Programme une notification dans 15 secondes. <strong>Mets l'app en arrière-plan</strong> juste après avoir cliqué.</p>
-    <button id="b3" disabled>Programmer dans 15s</button>
-  </div>
-
-  <div id="log">En attente…</div>
 </div>
 
 <script>
-const log = document.getElementById('log');
-function write(msg){
-  const t = new Date().toLocaleTimeString();
-  log.textContent = `[${t}] ${msg}\n` + (log.textContent === 'En attente…' ? '' : log.textContent);
+const CATEGORIES = [
+  { id: 'boulot',  label: 'Boulot',  color: '#4A6FA5' },
+  { id: 'maison',  label: 'Maison',  color: '#C97B4A' },
+  { id: 'extra',   label: 'Extra',   color: '#7A8C64' },
+  { id: 'voiture', label: 'Voiture', color: '#9B5DE5' },
+  { id: 'charge',  label: 'Charge',  color: '#3E9B8F' },
+];
+const STORAGE_KEY = 'memo_items_v1';
+
+function loadItems(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch(e){ return []; }
 }
-function setStatus(id, state, text){
-  const el = document.getElementById(id);
-  el.className = 'status ' + state;
-  el.textContent = text;
+function saveItems(items){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+function uid(){ return 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+
+let items = loadItems();
+let activeFilter = 'all';
+let editingId = null;
+let pendingCat = CATEGORIES[0].id;
+
+const screenList = document.getElementById('screenList');
+const screenEdit = document.getElementById('screenEdit');
+const filtersEl = document.getElementById('filters');
+const listEl = document.getElementById('list');
+const catPicker = document.getElementById('catPicker');
+const inpTitre = document.getElementById('inpTitre');
+const editTitle = document.getElementById('editTitle');
+const btnDelete = document.getElementById('btnDelete');
+
+function catById(id){ return CATEGORIES.find(c => c.id === id); }
+
+function renderFilters(){
+  filtersEl.innerHTML = '';
+  const all = document.createElement('span');
+  all.className = 'chip' + (activeFilter === 'all' ? ' active' : '');
+  all.textContent = 'Tous';
+  all.onclick = () => { activeFilter = 'all'; render(); };
+  filtersEl.appendChild(all);
+  CATEGORIES.forEach(c => {
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (activeFilter === c.id ? ' active' : '');
+    chip.textContent = c.label;
+    chip.onclick = () => { activeFilter = c.id; render(); };
+    filtersEl.appendChild(chip);
+  });
 }
 
-const b1 = document.getElementById('b1');
-const b2 = document.getElementById('b2');
-const b3 = document.getElementById('b3');
-
-let swReg = null;
-
-async function initSW(){
-  if (!('serviceWorker' in navigator)) {
-    setStatus('s0','err','Non supporté');
-    write('navigator.serviceWorker indisponible.');
+function renderList(){
+  listEl.innerHTML = '';
+  const visible = items.filter(i => activeFilter === 'all' || i.cat === activeFilter);
+  if (visible.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = items.length === 0
+      ? "Aucun mémo pour l'instant.\nAppuie sur + pour en créer un."
+      : "Aucun mémo dans cette catégorie.";
+    listEl.appendChild(empty);
     return;
   }
-  try {
-    swReg = await navigator.serviceWorker.register('./sw.js');
-    await navigator.serviceWorker.ready;
-    setStatus('s0','ok','Actif');
-    write('Service Worker enregistré et actif: ' + swReg.scope);
-    if (Notification.permission === 'granted') {
-      b2.disabled = false;
-      b3.disabled = false;
-    }
-  } catch (e) {
-    setStatus('s0','err','Échec');
-    write('Échec enregistrement Service Worker: ' + e.message);
-  }
-}
-initSW();
-
-if (!('Notification' in window)) {
-  setStatus('s1','err','API non disponible');
-  b1.disabled = true;
+  visible.forEach(item => {
+    const cat = catById(item.cat);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <span style="width:10px;height:10px;border-radius:50%;background:${cat.color};flex-shrink:0"></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:700">${escapeHtml(item.titre)}</div>
+      </div>
+      <span style="font-size:11px;font-weight:700;color:${cat.color};background:${cat.color}1A;padding:4px 9px;border-radius:7px">${cat.label}</span>
+    `;
+    card.onclick = () => openEdit(item.id);
+    listEl.appendChild(card);
+  });
 }
 
-b1.addEventListener('click', async () => {
-  try {
-    const perm = await Notification.requestPermission();
-    if (perm === 'granted') {
-      setStatus('s1','ok','Autorisé');
-      write('Permission accordée.');
-      if (swReg) { b2.disabled = false; b3.disabled = false; }
-    } else {
-      setStatus('s1','err','Refusé (' + perm + ')');
-      write('Permission refusée: ' + perm);
-    }
-  } catch (e) {
-    setStatus('s1','err','Erreur');
-    write('Erreur permission: ' + e.message);
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function renderCatPicker(){
+  catPicker.innerHTML = '';
+  CATEGORIES.forEach(c => {
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (pendingCat === c.id ? ' active' : '');
+    chip.textContent = c.label;
+    chip.onclick = () => { pendingCat = c.id; renderCatPicker(); };
+    catPicker.appendChild(chip);
+  });
+}
+
+function render(){
+  renderFilters();
+  renderList();
+}
+
+function openAdd(){
+  editingId = null;
+  inpTitre.value = '';
+  pendingCat = CATEGORIES[0].id;
+  editTitle.textContent = 'Nouveau mémo';
+  btnDelete.classList.add('hidden');
+  renderCatPicker();
+  screenList.classList.add('hidden');
+  screenEdit.classList.remove('hidden');
+}
+
+function openEdit(id){
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  editingId = id;
+  inpTitre.value = item.titre;
+  pendingCat = item.cat;
+  editTitle.textContent = 'Modifier le mémo';
+  btnDelete.classList.remove('hidden');
+  renderCatPicker();
+  screenList.classList.add('hidden');
+  screenEdit.classList.remove('hidden');
+}
+
+function closeEdit(){
+  screenEdit.classList.add('hidden');
+  screenList.classList.remove('hidden');
+}
+
+document.getElementById('btnAdd').addEventListener('click', openAdd);
+document.getElementById('btnBack').addEventListener('click', closeEdit);
+
+document.getElementById('btnSave').addEventListener('click', () => {
+  const titre = inpTitre.value.trim();
+  if (!titre) { inpTitre.focus(); return; }
+  if (editingId) {
+    const item = items.find(i => i.id === editingId);
+    item.titre = titre;
+    item.cat = pendingCat;
+  } else {
+    items.push({ id: uid(), titre, cat: pendingCat });
   }
+  saveItems(items);
+  closeEdit();
+  render();
 });
 
-b2.addEventListener('click', async () => {
-  try {
-    await swReg.showNotification('Mémo — test immédiat', { body: 'Si tu vois ceci, ça fonctionne.' });
-    setStatus('s2','ok','Envoyée');
-    write('Notification immédiate envoyée via le Service Worker.');
-  } catch (e) {
-    setStatus('s2','err','Erreur');
-    write('Erreur notification immédiate: ' + e.message);
-  }
+btnDelete.addEventListener('click', () => {
+  if (!editingId) return;
+  items = items.filter(i => i.id !== editingId);
+  saveItems(items);
+  closeEdit();
+  render();
 });
 
-b3.addEventListener('click', () => {
-  setStatus('s3','pending','Programmée… attends 15s');
-  write('Notification programmée dans 15s — mets l\'app en arrière-plan maintenant.');
-  setTimeout(async () => {
-    try {
-      await swReg.showNotification('Mémo — test différé', { body: 'Reçue même en arrière-plan ?' });
-      setStatus('s3','ok','Déclenchée après 15s');
-      write('Notification différée déclenchée.');
-    } catch (e) {
-      setStatus('s3','err','Erreur au déclenchement');
-      write('Erreur notification différée: ' + e.message);
-    }
-  }, 15000);
-});
+render();
 </script>
 </body>
 </html>
