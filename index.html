@@ -3,157 +3,61 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Test notifications — Mémo</title>
+<title>Diagnostic — Mémo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#FAF9F5; --fg:#1F1D1A; --muted:#8A8477; --card:#FFFFFF; --line:#E6E1D8; --ok:#3E9B8F; --err:#C94A4A;
-  box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){ --bg:#1C1B18; --fg:#F2EFE8; --muted:#A39D8E; --card:#262420; --line:#3A362F; }
-}
-:root[data-theme="dark"]{ --bg:#1C1B18; --fg:#F2EFE8; --muted:#A39D8E; --card:#262420; --line:#3A362F; }
+:root{--bg:#FAF9F5;--fg:#1F1D1A;--muted:#8A8477;--card:#FFFFFF;--line:#E6E1D8;--ok:#3E9B8F;--err:#C94A4A;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#1C1B18;--fg:#F2EFE8;--muted:#A39D8E;--card:#262420;--line:#3A362F}}
+:root[data-theme="dark"]{--bg:#1C1B18;--fg:#F2EFE8;--muted:#A39D8E;--card:#262420;--line:#3A362F}
 *{box-sizing:border-box}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:'Manrope',system-ui,sans-serif;min-height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'Manrope',system-ui,sans-serif}
 .wrap{max-width:480px;margin:0 auto;padding:24px 20px 40px 20px}
-h1{font-size:22px;font-weight:800;margin:0 0 4px 0}
-.sub{font-size:13px;color:var(--muted);margin:0 0 24px 0;line-height:1.5}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
-.card h2{font-size:14px;font-weight:700;margin:0 0 6px 0}
-.card p{font-size:13px;color:var(--muted);margin:0 0 12px 0;line-height:1.45}
-button{width:100%;padding:13px;border-radius:10px;border:none;background:var(--fg);color:var(--bg);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
-button:disabled{opacity:.45;cursor:default}
-.status{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;display:inline-block;margin-bottom:10px}
-.status.pending{background:#E6E1D8;color:var(--muted)}
-.status.ok{background:#3E9B8F26;color:var(--ok)}
-.status.err{background:#C94A4A26;color:var(--err)}
-#log{font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.6;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;max-height:220px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;color:var(--muted)}
+h1{font-size:20px;font-weight:800;margin:0 0 16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.row:last-child{border-bottom:none}
+.row span:first-child{color:var(--muted);flex-shrink:0}
+.row span:last-child{font-weight:700;text-align:right;word-break:break-word}
+button{width:100%;padding:13px;border-radius:10px;border:none;background:var(--fg);color:var(--bg);font-size:14px;font-weight:700;font-family:inherit;margin-top:6px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Test notifications</h1>
-  <p class="sub">Petit diagnostic pour vérifier ce qui fonctionne réellement sur ton téléphone avant de construire l'app. Fais les 3 tests dans l'ordre, idéalement après avoir ajouté cette page à l'écran d'accueil.</p>
-
-  <div class="card">
-    <span id="s1" class="status pending">Pas encore testé</span>
-    <h2>1 — Permission de notification</h2>
-    <p>Demande l'autorisation d'envoyer des notifications.</p>
-    <button id="b1">Demander la permission</button>
-  </div>
-
-  <div class="card">
-    <span id="s2" class="status pending">Pas encore testé</span>
-    <h2>2 — Notification immédiate</h2>
-    <p>Affiche une notification tout de suite.</p>
-    <button id="b2" disabled>Envoyer maintenant</button>
-  </div>
-
-  <div class="card">
-    <span id="s3" class="status pending">Pas encore testé</span>
-    <h2>3 — Notification différée (15s)</h2>
-    <p>Programme une notification dans 15 secondes. <strong>Mets l'app en arrière-plan</strong> (écran verrouillé ou autre app) juste après avoir cliqué, pour voir si elle arrive quand même.</p>
-    <button id="b3" disabled>Programmer dans 15s</button>
-  </div>
-
-  <div class="card">
-    <span id="s4" class="status pending">Pas encore testé</span>
-    <h2>4 — Service Worker</h2>
-    <p>Vérifie si un Service Worker peut s'enregistrer ici (nécessaire pour des notifications fiables même app fermée).</p>
-    <button id="b4">Tester l'enregistrement</button>
-  </div>
-
-  <div id="log">En attente…</div>
+<h1>Diagnostic notifications</h1>
+<div class="card" id="diag"></div>
+<button id="ask">Redemander la permission</button>
+<div class="card" id="result" style="margin-top:14px"></div>
 </div>
-
 <script>
-const log = document.getElementById('log');
-function write(msg){
-  const t = new Date().toLocaleTimeString();
-  log.textContent = `[${t}] ${msg}\n` + (log.textContent === 'En attente…' ? '' : log.textContent);
+const diag = document.getElementById('diag');
+function row(label, value){
+  const d = document.createElement('div');
+  d.className = 'row';
+  d.innerHTML = `<span>${label}</span><span>${value}</span>`;
+  diag.appendChild(d);
 }
-function setStatus(id, state, text){
-  const el = document.getElementById(id);
-  el.className = 'status ' + state;
-  el.textContent = text;
-}
-
-const b1 = document.getElementById('b1');
-const b2 = document.getElementById('b2');
-const b3 = document.getElementById('b3');
-const b4 = document.getElementById('b4');
-
-if (!('Notification' in window)) {
-  setStatus('s1','err','API non disponible');
-  write('API Notification absente de ce navigateur.');
-  b1.disabled = true;
+row('Navigateur (userAgent)', navigator.userAgent);
+row('Protocole', location.protocol);
+row('Fenêtre top-level', window.top === window.self ? 'Oui' : 'Non (dans un cadre)');
+row('API Notification', ('Notification' in window) ? 'Présente' : 'Absente');
+row('Permission actuelle', ('Notification' in window) ? Notification.permission : '—');
+if (navigator.permissions) {
+  navigator.permissions.query({name:'notifications'}).then(p => {
+    row('navigator.permissions', p.state);
+  }).catch(e => row('navigator.permissions', 'Erreur: ' + e.message));
+} else {
+  row('navigator.permissions', 'Non supporté');
 }
 
-b1.addEventListener('click', async () => {
+document.getElementById('ask').addEventListener('click', async () => {
+  const result = document.getElementById('result');
+  result.textContent = 'Appel en cours…';
   try {
-    const perm = await Notification.requestPermission();
-    if (perm === 'granted') {
-      setStatus('s1','ok','Autorisé');
-      write('Permission accordée.');
-      b2.disabled = false;
-      b3.disabled = false;
-    } else {
-      setStatus('s1','err','Refusé (' + perm + ')');
-      write('Permission refusée ou ignorée: ' + perm);
-    }
+    const p = await Notification.requestPermission();
+    result.textContent = 'Résultat: ' + p;
   } catch (e) {
-    setStatus('s1','err','Erreur');
-    write('Erreur permission: ' + e.message);
-  }
-});
-
-b2.addEventListener('click', () => {
-  try {
-    new Notification('Mémo — test immédiat', { body: 'Si tu vois ceci, la notification directe fonctionne.' });
-    setStatus('s2','ok','Envoyée');
-    write('Notification immédiate envoyée.');
-  } catch (e) {
-    setStatus('s2','err','Erreur');
-    write('Erreur notification immédiate: ' + e.message);
-  }
-});
-
-b3.addEventListener('click', () => {
-  setStatus('s3','pending','Programmée… attends 15s');
-  write('Notification programmée dans 15s — mets l\'app en arrière-plan maintenant.');
-  setTimeout(() => {
-    try {
-      new Notification('Mémo — test différé', { body: 'Si tu vois ceci en arrière-plan, bon signe.' });
-      setStatus('s3','ok','Déclenchée après 15s');
-      write('Notification différée déclenchée.');
-    } catch (e) {
-      setStatus('s3','err','Erreur au déclenchement');
-      write('Erreur notification différée: ' + e.message);
-    }
-  }, 15000);
-});
-
-b4.addEventListener('click', async () => {
-  if (!('serviceWorker' in navigator)) {
-    setStatus('s4','err','Non supporté');
-    write('navigator.serviceWorker indisponible dans ce contexte.');
-    return;
-  }
-  try {
-    const swCode = "self.addEventListener('install', e => self.skipWaiting());";
-    const blob = new Blob([swCode], { type: 'application/javascript' });
-    const url = URL.createObjectURL(blob);
-    const reg = await navigator.serviceWorker.register(url);
-    setStatus('s4','ok','Enregistré');
-    write('Service Worker enregistré: ' + reg.scope);
-  } catch (e) {
-    setStatus('s4','err','Échec');
-    write('Échec enregistrement Service Worker: ' + e.message);
+    result.textContent = 'Erreur levée: ' + e.name + ' — ' + e.message;
   }
 });
 </script>
