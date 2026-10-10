@@ -19,6 +19,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:'Manrope',system-
 #app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
 .chip{font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;white-space:nowrap;border:1px solid var(--line);color:var(--muted);background:var(--card)}
 .chip.active{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.seg{color:var(--muted);background:var(--card)}
+.seg.sel{background:var(--fg);color:var(--bg)}
 .card{display:flex;align-items:center;gap:12px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:14px}
 input.text,select.text{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--fg);background:var(--card);font-family:inherit}
 label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;display:block}
@@ -60,6 +62,22 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
         <label class="field">Catégorie</label>
         <div id="catPicker" style="display:flex;gap:8px;flex-wrap:wrap"></div>
       </div>
+      <div id="fieldMode" class="hidden">
+        <label class="field">Mode d'affichage</label>
+        <div style="display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden">
+          <span class="seg" data-mode="immediat" style="flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;cursor:pointer">Immédiat</span>
+          <span class="seg" data-mode="differe" style="flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;cursor:pointer;border-left:1px solid var(--line)">Différé</span>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 0 0;line-height:1.4" id="modeHelp"></p>
+      </div>
+      <div id="fieldTriggerLabel" class="hidden">
+        <label class="field" id="triggerLabelText">Zone</label>
+        <input class="text" id="inpTriggerLabel" type="text" placeholder="Ex: Maison">
+      </div>
+      <div id="fieldEmail" class="hidden">
+        <label class="field">Destinataire</label>
+        <input class="text" id="inpEmail" type="email" placeholder="exemple@mail.com">
+      </div>
     </div>
     <div style="padding:16px 20px 24px 20px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px">
       <button class="btn" id="btnSave">Enregistrer le mémo</button>
@@ -71,12 +89,23 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script>
 const CATEGORIES = [
-  { id: 'boulot',  label: 'Boulot',  color: '#4A6FA5' },
-  { id: 'maison',  label: 'Maison',  color: '#C97B4A' },
-  { id: 'extra',   label: 'Extra',   color: '#7A8C64' },
-  { id: 'voiture', label: 'Voiture', color: '#9B5DE5' },
-  { id: 'charge',  label: 'Charge',  color: '#3E9B8F' },
+  { id: 'boulot',  label: 'Boulot',  color: '#4A6FA5', trigger: 'geoloc' },
+  { id: 'maison',  label: 'Maison',  color: '#C97B4A', trigger: 'geoloc' },
+  { id: 'extra',   label: 'Extra',   color: '#7A8C64', trigger: 'geoloc' },
+  { id: 'voiture', label: 'Voiture', color: '#9B5DE5', trigger: 'bluetooth' },
+  { id: 'charge',  label: 'Charge',  color: '#3E9B8F', trigger: 'charge' },
+  { id: 'memo',    label: 'Mémo',    color: '#5B5648', trigger: 'none' },
+  { id: 'email',   label: 'Email',   color: '#D97757', trigger: 'none', special: 'email' },
 ];
+const TRIGGER_LABELS = {
+  geoloc: 'Zone',
+  bluetooth: 'Appareil Bluetooth',
+  charge: null,
+};
+const MODE_HELP = {
+  immediat: "La notif+alarme s'affiche dès l'échéance, et une 2e fois au déclenchement.",
+  differe: "La notif+alarme ne s'affiche qu'au déclenchement (pas dès l'échéance).",
+};
 const STORAGE_KEY = 'memo_items_v1';
 
 function loadItems(){
@@ -92,6 +121,9 @@ let items = loadItems();
 let activeFilter = 'all';
 let editingId = null;
 let pendingCat = CATEGORIES[0].id;
+let pendingMode = 'differe';
+let pendingTriggerLabel = '';
+let pendingEmail = '';
 
 const screenList = document.getElementById('screenList');
 const screenEdit = document.getElementById('screenEdit');
@@ -101,6 +133,13 @@ const catPicker = document.getElementById('catPicker');
 const inpTitre = document.getElementById('inpTitre');
 const editTitle = document.getElementById('editTitle');
 const btnDelete = document.getElementById('btnDelete');
+const fieldMode = document.getElementById('fieldMode');
+const fieldTriggerLabel = document.getElementById('fieldTriggerLabel');
+const fieldEmail = document.getElementById('fieldEmail');
+const triggerLabelText = document.getElementById('triggerLabelText');
+const inpTriggerLabel = document.getElementById('inpTriggerLabel');
+const inpEmail = document.getElementById('inpEmail');
+const modeHelp = document.getElementById('modeHelp');
 
 function catById(id){ return CATEGORIES.find(c => c.id === id); }
 
@@ -134,12 +173,20 @@ function renderList(){
   }
   visible.forEach(item => {
     const cat = catById(item.cat);
+    let subtitle = '';
+    if (cat.trigger !== 'none') {
+      const modeLabel = item.mode === 'immediat' ? 'Immédiat' : 'Différé';
+      subtitle = modeLabel + (item.triggerLabel ? ' · ' + escapeHtml(item.triggerLabel) : '');
+    } else if (cat.special === 'email' && item.email) {
+      subtitle = 'Vers ' + escapeHtml(item.email);
+    }
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
       <span style="width:10px;height:10px;border-radius:50%;background:${cat.color};flex-shrink:0"></span>
       <div style="flex:1;min-width:0">
         <div style="font-size:15px;font-weight:700">${escapeHtml(item.titre)}</div>
+        ${subtitle ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${subtitle}</div>` : ''}
       </div>
       <span style="font-size:11px;font-weight:700;color:${cat.color};background:${cat.color}1A;padding:4px 9px;border-radius:7px">${cat.label}</span>
     `;
@@ -160,10 +207,53 @@ function renderCatPicker(){
     const chip = document.createElement('span');
     chip.className = 'chip' + (pendingCat === c.id ? ' active' : '');
     chip.textContent = c.label;
-    chip.onclick = () => { pendingCat = c.id; renderCatPicker(); };
+    chip.onclick = () => { pendingCat = c.id; renderConditionalFields(); };
     catPicker.appendChild(chip);
   });
+  renderConditionalFields();
 }
+
+function renderModeToggle(){
+  document.querySelectorAll('.seg[data-mode]').forEach(el => {
+    el.classList.toggle('sel', el.dataset.mode === pendingMode);
+  });
+  modeHelp.textContent = MODE_HELP[pendingMode];
+}
+
+function renderConditionalFields(){
+  catPicker.querySelectorAll('.chip').forEach((chip, i) => {
+    chip.classList.toggle('active', CATEGORIES[i].id === pendingCat);
+  });
+  const cat = catById(pendingCat);
+
+  if (cat.trigger !== 'none') {
+    fieldMode.classList.remove('hidden');
+    renderModeToggle();
+  } else {
+    fieldMode.classList.add('hidden');
+  }
+
+  const triggerLabel = TRIGGER_LABELS[cat.trigger];
+  if (cat.trigger !== 'none' && triggerLabel) {
+    fieldTriggerLabel.classList.remove('hidden');
+    triggerLabelText.textContent = triggerLabel;
+    inpTriggerLabel.value = pendingTriggerLabel;
+    inpTriggerLabel.placeholder = cat.trigger === 'geoloc' ? 'Ex: Maison, Bureau…' : 'Ex: Autoradio';
+  } else {
+    fieldTriggerLabel.classList.add('hidden');
+  }
+
+  if (cat.special === 'email') {
+    fieldEmail.classList.remove('hidden');
+    inpEmail.value = pendingEmail;
+  } else {
+    fieldEmail.classList.add('hidden');
+  }
+}
+
+document.querySelectorAll('.seg[data-mode]').forEach(el => {
+  el.addEventListener('click', () => { pendingMode = el.dataset.mode; renderModeToggle(); });
+});
 
 function render(){
   renderFilters();
@@ -174,6 +264,9 @@ function openAdd(){
   editingId = null;
   inpTitre.value = '';
   pendingCat = CATEGORIES[0].id;
+  pendingMode = 'differe';
+  pendingTriggerLabel = '';
+  pendingEmail = '';
   editTitle.textContent = 'Nouveau mémo';
   btnDelete.classList.add('hidden');
   renderCatPicker();
@@ -187,6 +280,9 @@ function openEdit(id){
   editingId = id;
   inpTitre.value = item.titre;
   pendingCat = item.cat;
+  pendingMode = item.mode || 'differe';
+  pendingTriggerLabel = item.triggerLabel || '';
+  pendingEmail = item.email || '';
   editTitle.textContent = 'Modifier le mémo';
   btnDelete.classList.remove('hidden');
   renderCatPicker();
@@ -205,12 +301,24 @@ document.getElementById('btnBack').addEventListener('click', closeEdit);
 document.getElementById('btnSave').addEventListener('click', () => {
   const titre = inpTitre.value.trim();
   if (!titre) { inpTitre.focus(); return; }
+  const cat = catById(pendingCat);
+  const extra = {};
+  if (cat.trigger !== 'none') {
+    extra.mode = pendingMode;
+    extra.triggerLabel = inpTriggerLabel.value.trim();
+  }
+  if (cat.special === 'email') {
+    extra.email = inpEmail.value.trim();
+  }
   if (editingId) {
     const item = items.find(i => i.id === editingId);
     item.titre = titre;
     item.cat = pendingCat;
+    item.mode = extra.mode;
+    item.triggerLabel = extra.triggerLabel;
+    item.email = extra.email;
   } else {
-    items.push({ id: uid(), titre, cat: pendingCat });
+    items.push({ id: uid(), titre, cat: pendingCat, ...extra });
   }
   saveItems(items);
   closeEdit();
