@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#FAF9F5; --fg:#1F1D1A; --muted:#8A8477; --card:#FFFFFF; --line:#E6E1D8;
+  --bg:#FAF9F5; --fg:#1F1D1A; --muted:#8A8477; --card:#FFFFFF; --line:#E6E1D8; --err:#C94A4A;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){ --bg:#1C1B18; --fg:#F2EFE8; --muted:#A39D8E; --card:#262420; --line:#3A362F; }}
@@ -17,19 +17,28 @@
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:'Manrope',system-ui,sans-serif}
 #app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
-.chip{font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;white-space:nowrap;border:1px solid var(--line);color:var(--muted);background:var(--card)}
+.chip{font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;white-space:nowrap;border:1px solid var(--line);color:var(--muted);background:var(--card);cursor:pointer}
 .chip.active{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.tabs{display:flex;border-bottom:1px solid var(--line);padding:0 20px}
+.tab{flex:1;text-align:center;padding:12px 0;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:var(--fg);border-bottom-color:var(--fg)}
 .seg{color:var(--muted);background:var(--card)}
 .seg.sel{background:var(--fg);color:var(--bg)}
 .card{display:flex;align-items:center;gap:12px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:14px}
 input.text,select.text{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--fg);background:var(--card);font-family:inherit}
 label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;display:block}
 .btn{width:100%;padding:14px;border-radius:12px;background:var(--fg);color:var(--bg);border:none;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}
-.btn.secondary{background:transparent;color:var(--err,#C94A4A);border:1px solid var(--line)}
+.btn.secondary{background:transparent;color:var(--err);border:1px solid var(--line)}
+.btn.small{width:auto;padding:8px 12px;font-size:12px;border-radius:8px}
 .fab{width:44px;height:44px;border-radius:12px;background:var(--fg);color:var(--bg);border:none;font-size:22px;line-height:1;cursor:pointer}
 .back{width:40px;height:40px;background:none;border:none;color:var(--fg);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .hidden{display:none !important}
-.empty{text-align:center;color:var(--muted);font-size:13px;padding:40px 20px;line-height:1.6}
+.empty{text-align:center;color:var(--muted);font-size:13px;padding:40px 20px;line-height:1.6;white-space:pre-line}
+.linklike{font-size:12px;font-weight:700;color:var(--muted);text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;font-family:inherit}
+.manageRow{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;margin-top:6px}
+.manageRow span{flex:1;font-size:13px}
+.iconBtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px}
+.placeholder{padding:14px;background:var(--card);border:1px dashed var(--line);border-radius:12px;font-size:13px;color:var(--muted);line-height:1.5}
 </style>
 </head>
 <body>
@@ -41,7 +50,8 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
       <div style="font-size:24px;font-weight:800">Mémo</div>
       <button class="fab" id="btnAdd">+</button>
     </div>
-    <div id="filters" style="display:flex;gap:8px;padding:4px 20px 16px 20px;overflow-x:auto"></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="filters" style="display:flex;gap:8px;padding:12px 20px 16px 20px;overflow-x:auto"></div>
     <div id="list" style="flex:1;overflow-y:auto;padding:0 20px 20px 20px;display:flex;flex-direction:column;gap:10px"></div>
   </div>
 
@@ -63,20 +73,22 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
         <div id="catPicker" style="display:flex;gap:8px;flex-wrap:wrap"></div>
       </div>
       <div id="fieldMode" class="hidden">
-        <label class="field">Mode d'affichage</label>
-        <div style="display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden">
-          <span class="seg" data-mode="immediat" style="flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;cursor:pointer">Immédiat</span>
-          <span class="seg" data-mode="differe" style="flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;cursor:pointer;border-left:1px solid var(--line)">Différé</span>
-        </div>
+        <label class="field">Mode</label>
+        <div id="modeSeg" style="display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden"></div>
         <p style="font-size:12px;color:var(--muted);margin:8px 0 0 0;line-height:1.4" id="modeHelp"></p>
       </div>
-      <div id="fieldTriggerLabel" class="hidden">
-        <label class="field" id="triggerLabelText">Zone</label>
-        <input class="text" id="inpTriggerLabel" type="text" placeholder="Ex: Maison">
+      <div id="fieldPicker" class="hidden">
+        <label class="field" id="pickerLabel">Lieu</label>
+        <select class="text" id="selPicker"></select>
+        <div id="addPickerBox" class="hidden" style="margin-top:8px;display:flex;gap:8px">
+          <input class="text" id="inpNewPicker" type="text" placeholder="Nom">
+          <button class="btn small" id="btnConfirmAdd">OK</button>
+        </div>
+        <div style="margin-top:8px"><button class="linklike" id="btnManage">Gérer la liste</button></div>
+        <div id="manageBox" class="hidden" style="margin-top:4px"></div>
       </div>
-      <div id="fieldEmail" class="hidden">
-        <label class="field">Destinataire</label>
-        <input class="text" id="inpEmail" type="email" placeholder="exemple@mail.com">
+      <div id="fieldPlanifie" class="hidden">
+        <div class="placeholder">Récurrence / date d'activation — à configurer dans la prochaine étape (moteur de récurrence).</div>
       </div>
     </div>
     <div style="padding:16px 20px 24px 20px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px">
@@ -89,44 +101,50 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script>
 const CATEGORIES = [
-  { id: 'boulot',  label: 'Boulot',  color: '#4A6FA5', trigger: 'geoloc' },
-  { id: 'maison',  label: 'Maison',  color: '#C97B4A', trigger: 'geoloc' },
-  { id: 'extra',   label: 'Extra',   color: '#7A8C64', trigger: 'geoloc' },
-  { id: 'voiture', label: 'Voiture', color: '#9B5DE5', trigger: 'bluetooth' },
-  { id: 'charge',  label: 'Charge',  color: '#3E9B8F', trigger: 'charge' },
-  { id: 'memo',    label: 'Mémo',    color: '#5B5648', trigger: 'none' },
-  { id: 'email',   label: 'Email',   color: '#D97757', trigger: 'none', special: 'email' },
+  { id: 'memo',    label: 'Mémo',             color: '#5B5648', trigger: 'none', modes: ['immediat'] },
+  { id: 'boulot',  label: 'Boulot',           color: '#4A6FA5', trigger: 'geoloc', implicitZone: true, modes: ['immediat','differe','planifie'] },
+  { id: 'maison',  label: 'Maison',           color: '#C97B4A', trigger: 'geoloc', implicitZone: true, modes: ['immediat','differe','planifie'] },
+  { id: 'extra',   label: 'Extra',            color: '#7A8C64', trigger: 'geoloc', listKey: 'extra', pickerLabel: 'Lieu', modes: ['immediat','differe','planifie'] },
+  { id: 'voiture', label: 'Bluetooth / Wifi', color: '#9B5DE5', trigger: 'bluetooth', listKey: 'voiture', pickerLabel: 'Connexion', modes: ['immediat','differe','planifie'] },
+  { id: 'charge',  label: 'Charge',           color: '#3E9B8F', trigger: 'charge', modes: ['immediat','differe','planifie'] },
+  { id: 'email',   label: 'Email',            color: '#D97757', trigger: 'none', special: 'email', listKey: 'email', pickerLabel: 'Destinataire', modes: ['immediat','planifie'] },
 ];
-const TRIGGER_LABELS = {
-  geoloc: 'Zone',
-  bluetooth: 'Appareil Bluetooth',
-  charge: null,
-};
+const MODE_LABELS = { immediat: 'Immédiat', differe: 'Différé', planifie: 'Planifié' };
 const MODE_HELP = {
-  immediat: "La notif+alarme s'affiche dès l'échéance, et une 2e fois au déclenchement.",
-  differe: "La notif+alarme ne s'affiche qu'au déclenchement (pas dès l'échéance).",
+  immediat: "S'affiche dès l'échéance, regroupé avec les autres mémos immédiats de la catégorie, et à nouveau au déclenchement le cas échéant.",
+  differe: "S'affiche uniquement au déclenchement (zone, connexion ou mise en charge).",
+  planifie: "S'affiche selon une récurrence ou une date définie (à configurer prochainement).",
 };
-const STORAGE_KEY = 'memo_items_v1';
+const TABS = [
+  { id: 'immediat', label: 'Immédiat' },
+  { id: 'differe',  label: 'Différé' },
+  { id: 'planifie', label: 'Planifié' },
+];
 
-function loadItems(){
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-  catch(e){ return []; }
-}
-function saveItems(items){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-}
+const STORAGE_KEY = 'memo_items_v1';
+const LISTS_KEY = 'memo_lists_v1';
+
+function loadItems(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e){ return []; } }
+function saveItems(v){ localStorage.setItem(STORAGE_KEY, JSON.stringify(v)); }
+function loadLists(){ try { return JSON.parse(localStorage.getItem(LISTS_KEY)) || {}; } catch(e){ return {}; } }
+function saveLists(v){ localStorage.setItem(LISTS_KEY, JSON.stringify(v)); }
 function uid(){ return 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+function escapeHtml(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function catById(id){ return CATEGORIES.find(c => c.id === id); }
+function catIndex(id){ return CATEGORIES.findIndex(c => c.id === id); }
 
 let items = loadItems();
+let lists = loadLists();
+let activeTab = 'immediat';
 let activeFilter = 'all';
 let editingId = null;
 let pendingCat = CATEGORIES[0].id;
-let pendingMode = 'differe';
-let pendingTriggerLabel = '';
-let pendingEmail = '';
+let pendingMode = 'immediat';
+let pendingPick = '';
 
 const screenList = document.getElementById('screenList');
 const screenEdit = document.getElementById('screenEdit');
+const tabsEl = document.getElementById('tabs');
 const filtersEl = document.getElementById('filters');
 const listEl = document.getElementById('list');
 const catPicker = document.getElementById('catPicker');
@@ -134,14 +152,27 @@ const inpTitre = document.getElementById('inpTitre');
 const editTitle = document.getElementById('editTitle');
 const btnDelete = document.getElementById('btnDelete');
 const fieldMode = document.getElementById('fieldMode');
-const fieldTriggerLabel = document.getElementById('fieldTriggerLabel');
-const fieldEmail = document.getElementById('fieldEmail');
-const triggerLabelText = document.getElementById('triggerLabelText');
-const inpTriggerLabel = document.getElementById('inpTriggerLabel');
-const inpEmail = document.getElementById('inpEmail');
+const modeSeg = document.getElementById('modeSeg');
 const modeHelp = document.getElementById('modeHelp');
+const fieldPicker = document.getElementById('fieldPicker');
+const pickerLabel = document.getElementById('pickerLabel');
+const selPicker = document.getElementById('selPicker');
+const addPickerBox = document.getElementById('addPickerBox');
+const inpNewPicker = document.getElementById('inpNewPicker');
+const btnManage = document.getElementById('btnManage');
+const manageBox = document.getElementById('manageBox');
+const fieldPlanifie = document.getElementById('fieldPlanifie');
 
-function catById(id){ return CATEGORIES.find(c => c.id === id); }
+function renderTabs(){
+  tabsEl.innerHTML = '';
+  TABS.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (activeTab === t.id ? ' active' : '');
+    el.textContent = t.label;
+    el.onclick = () => { activeTab = t.id; render(); };
+    tabsEl.appendChild(el);
+  });
+}
 
 function renderFilters(){
   filtersEl.innerHTML = '';
@@ -151,6 +182,7 @@ function renderFilters(){
   all.onclick = () => { activeFilter = 'all'; render(); };
   filtersEl.appendChild(all);
   CATEGORIES.forEach(c => {
+    if (!c.modes.includes(activeTab)) return;
     const chip = document.createElement('span');
     chip.className = 'chip' + (activeFilter === c.id ? ' active' : '');
     chip.textContent = c.label;
@@ -161,25 +193,18 @@ function renderFilters(){
 
 function renderList(){
   listEl.innerHTML = '';
-  const visible = items.filter(i => activeFilter === 'all' || i.cat === activeFilter);
+  let visible = items.filter(i => i.mode === activeTab && (activeFilter === 'all' || i.cat === activeFilter));
+  visible.sort((a,b) => catIndex(a.cat) - catIndex(b.cat));
   if (visible.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'empty';
-    empty.textContent = items.length === 0
-      ? "Aucun mémo pour l'instant.\nAppuie sur + pour en créer un."
-      : "Aucun mémo dans cette catégorie.";
+    empty.textContent = "Aucun mémo " + MODE_LABELS[activeTab].toLowerCase() + " pour l'instant.\nAppuie sur + pour en créer un.";
     listEl.appendChild(empty);
     return;
   }
   visible.forEach(item => {
     const cat = catById(item.cat);
-    let subtitle = '';
-    if (cat.trigger !== 'none') {
-      const modeLabel = item.mode === 'immediat' ? 'Immédiat' : 'Différé';
-      subtitle = modeLabel + (item.triggerLabel ? ' · ' + escapeHtml(item.triggerLabel) : '');
-    } else if (cat.special === 'email' && item.email) {
-      subtitle = 'Vers ' + escapeHtml(item.email);
-    }
+    let subtitle = cat.listKey && item.pick ? escapeHtml(item.pick) : '';
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
@@ -195,10 +220,11 @@ function renderList(){
   });
 }
 
-function escapeHtml(s){
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+function render(){
+  renderTabs();
+  if (!catById(activeFilter) && activeFilter !== 'all') activeFilter = 'all';
+  renderFilters();
+  renderList();
 }
 
 function renderCatPicker(){
@@ -207,18 +233,99 @@ function renderCatPicker(){
     const chip = document.createElement('span');
     chip.className = 'chip' + (pendingCat === c.id ? ' active' : '');
     chip.textContent = c.label;
-    chip.onclick = () => { pendingCat = c.id; renderConditionalFields(); };
+    chip.onclick = () => {
+      pendingCat = c.id;
+      if (!catById(pendingCat).modes.includes(pendingMode)) pendingMode = catById(pendingCat).modes[0];
+      renderConditionalFields();
+    };
     catPicker.appendChild(chip);
   });
   renderConditionalFields();
 }
 
-function renderModeToggle(){
-  document.querySelectorAll('.seg[data-mode]').forEach(el => {
-    el.classList.toggle('sel', el.dataset.mode === pendingMode);
+function renderModeSeg(){
+  const cat = catById(pendingCat);
+  modeSeg.innerHTML = '';
+  cat.modes.forEach((m, i) => {
+    const el = document.createElement('span');
+    el.className = 'seg' + (pendingMode === m ? ' sel' : '');
+    el.textContent = MODE_LABELS[m];
+    el.style.cssText = 'flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;cursor:pointer;' + (i>0 ? 'border-left:1px solid var(--line)' : '');
+    el.onclick = () => { pendingMode = m; renderModeSeg(); renderConditionalFields(); };
+    modeSeg.appendChild(el);
   });
   modeHelp.textContent = MODE_HELP[pendingMode];
 }
+
+function renderPickerSelect(){
+  const cat = catById(pendingCat);
+  if (!cat.listKey) return;
+  const arr = lists[cat.listKey] || [];
+  selPicker.innerHTML = '';
+  arr.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = v;
+    if (v === pendingPick) o.selected = true;
+    selPicker.appendChild(o);
+  });
+  const addOpt = document.createElement('option');
+  addOpt.value = '__add__';
+  addOpt.textContent = '+ Ajouter…';
+  selPicker.appendChild(addOpt);
+  if (!pendingPick && arr.length > 0) { pendingPick = arr[0]; selPicker.value = arr[0]; }
+  renderManageBox();
+}
+
+function renderManageBox(){
+  const cat = catById(pendingCat);
+  if (!cat.listKey) return;
+  const arr = lists[cat.listKey] || [];
+  manageBox.innerHTML = '';
+  arr.forEach((v, i) => {
+    const row = document.createElement('div');
+    row.className = 'manageRow';
+    row.innerHTML = `<span>${escapeHtml(v)}</span>`;
+    const up = document.createElement('button');
+    up.className = 'iconBtn'; up.textContent = '↑'; up.disabled = i === 0;
+    up.onclick = () => { [arr[i-1],arr[i]] = [arr[i],arr[i-1]]; saveLists(lists); renderPickerSelect(); };
+    const down = document.createElement('button');
+    down.className = 'iconBtn'; down.textContent = '↓'; down.disabled = i === arr.length-1;
+    down.onclick = () => { [arr[i+1],arr[i]] = [arr[i],arr[i+1]]; saveLists(lists); renderPickerSelect(); };
+    const del = document.createElement('button');
+    del.className = 'iconBtn'; del.textContent = '×';
+    del.onclick = () => {
+      arr.splice(i,1); saveLists(lists);
+      if (pendingPick === v) pendingPick = arr[0] || '';
+      renderPickerSelect();
+    };
+    row.appendChild(up); row.appendChild(down); row.appendChild(del);
+    manageBox.appendChild(row);
+  });
+}
+
+btnManage.addEventListener('click', () => { manageBox.classList.toggle('hidden'); });
+
+selPicker.addEventListener('change', () => {
+  if (selPicker.value === '__add__') {
+    addPickerBox.classList.remove('hidden');
+    inpNewPicker.value = '';
+    inpNewPicker.focus();
+  } else {
+    pendingPick = selPicker.value;
+  }
+});
+
+document.getElementById('btnConfirmAdd').addEventListener('click', () => {
+  const val = inpNewPicker.value.trim();
+  if (!val) return;
+  const cat = catById(pendingCat);
+  if (!lists[cat.listKey]) lists[cat.listKey] = [];
+  lists[cat.listKey].push(val);
+  saveLists(lists);
+  pendingPick = val;
+  addPickerBox.classList.add('hidden');
+  renderPickerSelect();
+});
 
 function renderConditionalFields(){
   catPicker.querySelectorAll('.chip').forEach((chip, i) => {
@@ -226,47 +333,37 @@ function renderConditionalFields(){
   });
   const cat = catById(pendingCat);
 
-  if (cat.trigger !== 'none') {
+  if (cat.modes.length > 1) {
     fieldMode.classList.remove('hidden');
-    renderModeToggle();
+    renderModeSeg();
   } else {
     fieldMode.classList.add('hidden');
   }
 
-  const triggerLabel = TRIGGER_LABELS[cat.trigger];
-  if (cat.trigger !== 'none' && triggerLabel) {
-    fieldTriggerLabel.classList.remove('hidden');
-    triggerLabelText.textContent = triggerLabel;
-    inpTriggerLabel.value = pendingTriggerLabel;
-    inpTriggerLabel.placeholder = cat.trigger === 'geoloc' ? 'Ex: Maison, Bureau…' : 'Ex: Autoradio';
+  const showPicker = cat.listKey && (pendingMode === 'immediat' || pendingMode === 'differe' || cat.special === 'email');
+  if (showPicker) {
+    fieldPicker.classList.remove('hidden');
+    pickerLabel.textContent = cat.pickerLabel || 'Choix';
+    addPickerBox.classList.add('hidden');
+    manageBox.classList.add('hidden');
+    renderPickerSelect();
   } else {
-    fieldTriggerLabel.classList.add('hidden');
+    fieldPicker.classList.add('hidden');
   }
 
-  if (cat.special === 'email') {
-    fieldEmail.classList.remove('hidden');
-    inpEmail.value = pendingEmail;
+  if (pendingMode === 'planifie') {
+    fieldPlanifie.classList.remove('hidden');
   } else {
-    fieldEmail.classList.add('hidden');
+    fieldPlanifie.classList.add('hidden');
   }
-}
-
-document.querySelectorAll('.seg[data-mode]').forEach(el => {
-  el.addEventListener('click', () => { pendingMode = el.dataset.mode; renderModeToggle(); });
-});
-
-function render(){
-  renderFilters();
-  renderList();
 }
 
 function openAdd(){
   editingId = null;
   inpTitre.value = '';
-  pendingCat = CATEGORIES[0].id;
-  pendingMode = 'differe';
-  pendingTriggerLabel = '';
-  pendingEmail = '';
+  pendingCat = (activeFilter !== 'all') ? activeFilter : CATEGORIES[0].id;
+  pendingMode = catById(pendingCat).modes.includes(activeTab) ? activeTab : catById(pendingCat).modes[0];
+  pendingPick = '';
   editTitle.textContent = 'Nouveau mémo';
   btnDelete.classList.add('hidden');
   renderCatPicker();
@@ -280,9 +377,8 @@ function openEdit(id){
   editingId = id;
   inpTitre.value = item.titre;
   pendingCat = item.cat;
-  pendingMode = item.mode || 'differe';
-  pendingTriggerLabel = item.triggerLabel || '';
-  pendingEmail = item.email || '';
+  pendingMode = item.mode;
+  pendingPick = item.pick || '';
   editTitle.textContent = 'Modifier le mémo';
   btnDelete.classList.remove('hidden');
   renderCatPicker();
@@ -302,23 +398,15 @@ document.getElementById('btnSave').addEventListener('click', () => {
   const titre = inpTitre.value.trim();
   if (!titre) { inpTitre.focus(); return; }
   const cat = catById(pendingCat);
-  const extra = {};
-  if (cat.trigger !== 'none') {
-    extra.mode = pendingMode;
-    extra.triggerLabel = inpTriggerLabel.value.trim();
-  }
-  if (cat.special === 'email') {
-    extra.email = inpEmail.value.trim();
+  const data = { titre, cat: pendingCat, mode: pendingMode };
+  if (cat.listKey && (pendingMode === 'immediat' || pendingMode === 'differe' || cat.special === 'email')) {
+    data.pick = pendingPick;
   }
   if (editingId) {
     const item = items.find(i => i.id === editingId);
-    item.titre = titre;
-    item.cat = pendingCat;
-    item.mode = extra.mode;
-    item.triggerLabel = extra.triggerLabel;
-    item.email = extra.email;
+    Object.assign(item, data);
   } else {
-    items.push({ id: uid(), titre, cat: pendingCat, ...extra });
+    items.push({ id: uid(), ...data });
   }
   saveItems(items);
   closeEdit();
