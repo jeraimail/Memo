@@ -1,4 +1,4 @@
-// SW_VERSION: 2026-10-11 18:00
+// SW_VERSION: 2026-10-11 18:10
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
