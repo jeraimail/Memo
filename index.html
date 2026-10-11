@@ -19,22 +19,40 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:'Manrope',system-
 #app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
 .chip{font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;white-space:nowrap;border:1px solid var(--line);color:var(--muted);background:var(--card);cursor:pointer}
 .chip.active{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.iconChip{width:100%;aspect-ratio:1;max-height:44px;border-radius:12px;border:1px solid var(--line);color:var(--muted);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.iconChip.active{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.iconChip svg{height:17px;width:auto;max-width:85%}
 .tabs{display:flex;border-bottom:1px solid var(--line);padding:0 20px}
 .tab{flex:1;text-align:center;padding:12px 0;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
 .tab.active{color:var(--fg);border-bottom-color:var(--fg)}
 .seg{color:var(--muted);background:var(--card)}
 .seg.sel{background:var(--fg);color:var(--bg)}
 .card{display:flex;align-items:center;gap:12px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:14px}
-input.text,select.text{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--fg);background:var(--card);font-family:inherit}
+.groupCard{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.groupHeader{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--bg)}
+.groupRow{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--line);cursor:pointer}
+input.text,select.text,button.text{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px;color:var(--fg);background:var(--card);font-family:inherit}
 label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;display:block}
 .btn{width:100%;padding:14px;border-radius:12px;background:var(--fg);color:var(--bg);border:none;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}
 .btn.secondary{background:transparent;color:var(--err);border:1px solid var(--line)}
 .btn.small{width:auto;padding:8px 12px;font-size:12px;border-radius:8px}
-.fab{width:44px;height:44px;border-radius:12px;background:var(--fg);color:var(--bg);border:none;font-size:22px;line-height:1;cursor:pointer}
+.fab{width:44px;height:44px;border-radius:12px;background:var(--fg);color:var(--bg);border:none;font-size:22px;line-height:1;cursor:pointer;flex-shrink:0}
+.headerIcon{width:36px;height:36px;border-radius:10px;background:var(--card);color:var(--fg);border:1px solid var(--line);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.headerIcon svg{width:17px;height:17px}
 .back{width:40px;height:40px;background:none;border:none;color:var(--fg);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .hidden{display:none !important}
 .empty{text-align:center;color:var(--muted);font-size:13px;padding:40px 20px;line-height:1.6;white-space:pre-line}
 .linklike{font-size:12px;font-weight:700;color:var(--muted);text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;font-family:inherit}
+.colorSwatch{width:38px;height:32px;border-radius:8px;border:1px solid var(--line);flex-shrink:0;cursor:pointer;padding:0}
+.sheetBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;z-index:1000}
+.sheetCard{background:var(--card);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px)) 20px;max-height:75vh;overflow-y:auto}
+.sheetTitle{font-size:16px;font-weight:800;margin-bottom:16px;color:var(--fg)}
+.paletteGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
+.paletteSwatch{aspect-ratio:1;border-radius:10px;border:2px solid var(--line);cursor:pointer}
+.paletteSwatch.sel{border-color:var(--fg)}
+.listOption{padding:13px 14px;border-radius:10px;font-size:14px;font-weight:600;color:var(--fg);cursor:pointer}
+.listOption.sel{background:var(--bg);font-weight:800}
+.listOption:not(:last-child){margin-bottom:2px}
 .manageRow{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;margin-top:6px}
 .manageRow span{flex:1;font-size:13px}
 .iconBtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px}
@@ -46,68 +64,195 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
   <!-- ÉCRAN LISTE -->
   <div id="screenList">
-    <div style="padding:20px 20px 12px 20px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:24px;font-weight:800">Mémo</div>
+    <div style="padding:20px 20px 12px 20px;display:flex;align-items:center;justify-content:space-between;gap:7px">
+      <div style="font-size:24px;font-weight:800;flex:1">Mémo</div>
+      <button class="headerIcon" id="btnSearch" type="button" title="Rechercher">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="headerIcon" id="btnArchive" type="button" title="Archive">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+      </button>
+      <button class="headerIcon" id="btnSettings" type="button" title="Paramètres">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
       <button class="fab" id="btnAdd">+</button>
     </div>
+    <div id="searchBar" class="hidden" style="padding:0 20px 14px 20px">
+      <input class="text" id="inpSearch" type="text" placeholder="Rechercher un mémo…">
+    </div>
     <div class="tabs" id="tabs"></div>
-    <div id="filters" style="display:flex;gap:8px;padding:12px 20px 16px 20px;overflow-x:auto"></div>
+    <div id="filters" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(40px,1fr));gap:8px;padding:12px 20px 16px 20px"></div>
     <div id="list" style="flex:1;overflow-y:auto;padding:0 20px 20px 20px;display:flex;flex-direction:column;gap:10px"></div>
   </div>
 
   <!-- ÉCRAN ÉDITION -->
   <div id="screenEdit" class="hidden" style="display:flex;flex-direction:column;height:100%">
-    <div style="padding:20px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)">
+    <div style="padding:14px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)">
       <button class="back" id="btnBack">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
-      <div id="editTitle" style="font-size:17px;font-weight:800">Nouveau mémo</div>
+      <div id="editTitle" style="font-size:16px;font-weight:800;flex:1">Nouveau mémo</div>
+      <button class="btn secondary hidden" id="btnDelete" style="width:auto;padding:9px 14px;font-size:12px">Supprimer</button>
+      <button class="btn" id="btnSave" style="width:auto;padding:9px 16px;font-size:13px">Enregistrer</button>
     </div>
-    <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px">
+    <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px" id="editBody">
       <div>
         <label class="field" for="inpTitre">Titre du mémo</label>
         <input class="text" id="inpTitre" type="text" placeholder="Ex: Arroser les plantes">
       </div>
       <div>
         <label class="field">Catégorie</label>
-        <div id="catPicker" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        <div id="catPicker" style="display:grid;grid-template-columns:repeat(7, 1fr);gap:8px"></div>
       </div>
       <div id="fieldMode" class="hidden">
         <label class="field">Mode</label>
         <div id="modeSeg" style="display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden"></div>
         <p style="font-size:12px;color:var(--muted);margin:8px 0 0 0;line-height:1.4" id="modeHelp"></p>
       </div>
+      <div>
+        <label class="field">Planifié ?</label>
+        <div id="planSeg" style="display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden"></div>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 0 0;line-height:1.4">Si oui, une récurrence ou une date d'activation détermine quand ce mémo devient actif — il suit ensuite le mode ci-dessus (immédiat ou différé) une fois déclenché.</p>
+      </div>
       <div id="fieldPicker" class="hidden">
+        <div id="connTypeSeg" class="hidden" style="display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:10px"></div>
         <label class="field" id="pickerLabel">Lieu</label>
-        <select class="text" id="selPicker"></select>
-        <div id="addPickerBox" class="hidden" style="margin-top:8px;display:flex;gap:8px">
-          <input class="text" id="inpNewPicker" type="text" placeholder="Nom">
-          <button class="btn small" id="btnConfirmAdd">OK</button>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="text" id="selPicker" style="flex:1;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer">
+            <span id="selPickerLabel">—</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.6"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <button class="btn small" id="btnAddPicker" type="button" style="flex-shrink:0">+</button>
         </div>
-        <div style="margin-top:8px"><button class="linklike" id="btnManage">Gérer la liste</button></div>
-        <div id="manageBox" class="hidden" style="margin-top:4px"></div>
+        <div id="addPickerBox" class="hidden" style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+          <button class="btn small" id="btnPickBluetooth" type="button" style="display:none">Choisir un appareil Bluetooth…</button>
+          <div style="display:flex;gap:8px">
+            <input class="text" id="inpNewPicker" type="text" placeholder="Nom">
+            <button class="btn small" id="btnConfirmAdd" type="button">OK</button>
+          </div>
+        </div>
+        <div style="margin-top:8px"><button class="linklike" id="btnManage" type="button">Gérer la liste</button></div>
+        <div id="manageBox" class="hidden" style="margin-top:4px;border:1px solid var(--line);border-radius:10px;padding:8px"></div>
       </div>
-      <div id="fieldPlanifie" class="hidden">
-        <div class="placeholder">Récurrence / date d'activation — à configurer dans la prochaine étape (moteur de récurrence).</div>
+      <div id="fieldPlanifie" class="hidden" style="display:flex;flex-direction:column;gap:16px">
+        <div>
+          <label class="field">Type</label>
+          <div id="recKindSeg" style="display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden"></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1">
+            <label class="field" id="recDateLabel">Date</label>
+            <input class="text" id="inpRecDate" type="date">
+          </div>
+          <div style="flex:1">
+            <label class="field">Heure</label>
+            <input class="text" id="inpRecTime" type="time">
+          </div>
+        </div>
+        <div id="recRecurrentBlock" class="hidden" style="display:flex;flex-direction:column;gap:16px">
+          <div>
+            <label class="field">Fréquence</label>
+            <div id="recFreqSeg" style="display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden"></div>
+          </div>
+          <div>
+            <label class="field">Récurrence tous les</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input class="text" id="inpRecInterval" type="number" min="1" value="1" style="width:72px;text-align:center">
+              <span id="recIntervalUnit" style="font-size:14px;color:var(--muted);font-weight:600">jour(s)</span>
+            </div>
+          </div>
+          <div id="recWeekdaysBlock" class="hidden">
+            <label class="field">Jour(s) de la semaine</label>
+            <div id="recWeekdays" style="display:flex;gap:6px;justify-content:space-between"></div>
+          </div>
+          <div id="recMonthBlock" class="hidden">
+            <label class="field">Type de jour du mois</label>
+            <div id="recMonthModeSeg" style="display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px"></div>
+            <div id="recMonthFixedBox">
+              <label class="field">Jour fixe du mois</label>
+              <input class="text" id="inpRecDayOfMonth" type="number" min="1" max="31" value="1" style="width:72px;text-align:center">
+            </div>
+            <div id="recMonthPositionBox" class="hidden" style="display:flex;flex-direction:column;gap:12px">
+              <div>
+                <label class="field">Position(s)</label>
+                <div id="recPositionMulti" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+              </div>
+              <div>
+                <label class="field">Jour(s) de la semaine</label>
+                <div id="recPositionDayMulti" style="display:flex;gap:6px;justify-content:space-between"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="placeholder" id="recSummary" style="font-weight:600;color:var(--fg)"></div>
       </div>
     </div>
-    <div style="padding:16px 20px 24px 20px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px">
-      <button class="btn" id="btnSave">Enregistrer le mémo</button>
-      <button class="btn secondary hidden" id="btnDelete">Supprimer ce mémo</button>
+  </div>
+
+  <!-- ÉCRAN PARAMÈTRES -->
+  <div id="screenSettings" class="hidden" style="display:flex;flex-direction:column;height:100%">
+    <div style="padding:14px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)">
+      <button class="back" id="btnBackSettings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div style="font-size:16px;font-weight:800">Paramètres</div>
     </div>
+    <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:24px">
+      <div>
+        <label class="field">Son d'alerte</label>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 10px 0;line-height:1.4">Utilisé plus tard pour les alertes sonores (géoloc, Bluetooth/Wifi, charge).</p>
+        <div id="soundName" style="font-size:13px;font-weight:600;margin-bottom:10px">Son par défaut</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn small" id="btnPickSound" type="button">Choisir un fichier…</button>
+          <button class="btn small secondary" id="btnTestSound" type="button" style="color:var(--fg)">Tester</button>
+        </div>
+        <input type="file" id="inpSoundFile" accept="audio/*" class="hidden">
+        <audio id="audioPreview"></audio>
+      </div>
+      <div>
+        <label class="field">Couleurs des catégories</label>
+        <div id="colorList" style="display:flex;flex-direction:column;gap:10px"></div>
+        <div style="margin-top:10px"><button class="linklike" id="btnResetColors" type="button">Réinitialiser les couleurs</button></div>
+      </div>
+      <div>
+        <label class="field">Couleurs des clignotements</label>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 10px 0;line-height:1.4">Utilisées plus tard pour l'alerte visuelle (bordure d'écran et cercle caméra).</p>
+        <div style="display:flex;flex-direction:column;gap:10px" id="blinkColorList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉCRAN ARCHIVE -->
+  <div id="screenArchive" class="hidden" style="display:flex;flex-direction:column;height:100%">
+    <div style="padding:14px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)">
+      <button class="back" id="btnBackArchive">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div style="font-size:16px;font-weight:800">Archive</div>
+    </div>
+    <div id="archiveList" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:8px"></div>
   </div>
 
 </div>
 
 <script>
+const ICONS = {
+  memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  boulot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+  maison: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
+  extra: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-11.5A7 7 0 1 0 5 9.5C5 14.5 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg>',
+  voiture: '<svg viewBox="0 0 60 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(-2,0) scale(0.85)"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></g><line x1="24" y1="19" x2="30" y2="5" stroke-width="1.5"/><g transform="translate(36,0) scale(0.85)"><path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 20 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></g></svg>',
+  charge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="17" height="9" rx="2"/><path d="M22 10v5"/><path d="M11 10l-2 3h3l-2 3"/></svg>',
+  email: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7 10-7"/></svg>',
+};
 const CATEGORIES = [
   { id: 'memo',    label: 'Mémo',             color: '#5B5648', trigger: 'none', modes: ['immediat'] },
-  { id: 'boulot',  label: 'Boulot',           color: '#4A6FA5', trigger: 'geoloc', implicitZone: true, modes: ['immediat','differe','planifie'] },
-  { id: 'maison',  label: 'Maison',           color: '#C97B4A', trigger: 'geoloc', implicitZone: true, modes: ['immediat','differe','planifie'] },
-  { id: 'extra',   label: 'Extra',            color: '#7A8C64', trigger: 'geoloc', listKey: 'extra', pickerLabel: 'Lieu', modes: ['immediat','differe','planifie'] },
-  { id: 'voiture', label: 'Bluetooth / Wifi', color: '#9B5DE5', trigger: 'bluetooth', listKey: 'voiture', pickerLabel: 'Connexion', modes: ['immediat','differe','planifie'] },
-  { id: 'charge',  label: 'Charge',           color: '#3E9B8F', trigger: 'charge', modes: ['immediat','differe','planifie'] },
-  { id: 'email',   label: 'Email',            color: '#D97757', trigger: 'none', special: 'email', listKey: 'email', pickerLabel: 'Destinataire', modes: ['immediat','planifie'] },
+  { id: 'boulot',  label: 'Boulot',           color: '#4A6FA5', trigger: 'geoloc', implicitZone: true, modes: ['immediat','differe'] },
+  { id: 'maison',  label: 'Maison',           color: '#C97B4A', trigger: 'geoloc', implicitZone: true, modes: ['immediat','differe'] },
+  { id: 'extra',   label: 'Extra',            color: '#7A8C64', trigger: 'geoloc', listKey: 'extra', pickerLabel: 'Lieu', modes: ['immediat','differe'] },
+  { id: 'voiture', label: 'Bluetooth / Wifi', color: '#9B5DE5', trigger: 'bluetooth', connTypes: [{id:'bt',label:'Bluetooth'},{id:'wifi',label:'Wifi'}], pickerLabel: 'Connexion', modes: ['immediat','differe'] },
+  { id: 'charge',  label: 'Charge',           color: '#3E9B8F', trigger: 'charge', modes: ['immediat','differe'] },
+  { id: 'email',   label: 'Email',            color: '#D97757', trigger: 'none', special: 'email', listKey: 'email', pickerLabel: 'Destinataire', modes: ['immediat'] },
 ];
 const MODE_LABELS = { immediat: 'Immédiat', differe: 'Différé', planifie: 'Planifié' };
 const MODE_HELP = {
@@ -115,14 +260,127 @@ const MODE_HELP = {
   differe: "S'affiche uniquement au déclenchement (zone, connexion ou mise en charge).",
   planifie: "S'affiche selon une récurrence ou une date définie (à configurer prochainement).",
 };
+const WEEKDAYS = [
+  {id:0,label:'Lu',full:'lundi'}, {id:1,label:'Ma',full:'mardi'}, {id:2,label:'Me',full:'mercredi'},
+  {id:3,label:'Je',full:'jeudi'}, {id:4,label:'Ve',full:'vendredi'}, {id:5,label:'Sa',full:'samedi'}, {id:6,label:'Di',full:'dimanche'},
+];
+const POSITIONS = [{id:1,label:'1er',full:'premier'},{id:2,label:'2e',full:'deuxième'},{id:3,label:'3e',full:'troisième'},{id:4,label:'4e',full:'quatrième'},{id:-1,label:'Dernier',full:'dernier'}];
+const FREQ_OPTIONS = [{id:'jour',label:'Jour'},{id:'semaine',label:'Semaine'},{id:'mois',label:'Mois'},{id:'annee',label:'Année'}];
+const FREQ_UNIT = {jour:'jour(s)', semaine:'semaine(s)', mois:'mois', annee:'année(s)'};
+
+function recurrenceSummary(rec){
+  if (!rec || !rec.date) return '';
+  if (rec.kind === 'unique') {
+    const d = new Date(rec.date + 'T00:00:00');
+    const txt = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+    return 'Ce mémo s\'affichera le ' + txt + (rec.time ? ' à ' + rec.time : '') + '.';
+  }
+  const n = rec.interval || 1;
+  const plural = n > 1;
+  let when = '';
+  if (rec.freq === 'jour') {
+    when = plural ? `tous les ${n} jours` : 'chaque jour';
+  } else if (rec.freq === 'semaine') {
+    const days = (rec.weekdays||[]).map(id => WEEKDAYS.find(w=>w.id===id).full);
+    const daysTxt = days.length ? ' (' + days.join(', ') + ')' : '';
+    when = (plural ? `toutes les ${n} semaines` : 'chaque semaine') + daysTxt;
+  } else if (rec.freq === 'mois') {
+    if (rec.monthMode === 'position') {
+      const posTxt = (rec.positions||[]).map(id => POSITIONS.find(p=>p.id===id).full).join(' et ');
+      const wdTxt = (rec.positionWeekdays||[]).map(id => WEEKDAYS.find(w=>w.id===id).full).join(' et ');
+      when = (plural ? `tous les ${n} mois` : 'chaque mois') + `, le ${posTxt} ${wdTxt}`;
+    } else {
+      when = (plural ? `tous les ${n} mois` : 'chaque mois') + `, le ${rec.dayOfMonth || 1}`;
+    }
+  } else if (rec.freq === 'annee') {
+    when = plural ? `tous les ${n} ans` : 'chaque année';
+  }
+  return 'Ce mémo reviendra ' + when + (rec.time ? ', à ' + rec.time : '') + '.';
+}
+
+function dateOnly(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function diffDays(a,b){ return Math.round((dateOnly(a) - dateOnly(b)) / 86400000); }
+function mondayOf(d){ const wd = (d.getDay()+6)%7; const r = new Date(d); r.setDate(d.getDate()-wd); return dateOnly(r); }
+function weekdayIndex(d){ return (d.getDay()+6)%7; }
+function nthWeekdayOfMonth(year, month, weekday, n){
+  if (n === -1) {
+    const last = new Date(year, month+1, 0);
+    const offset = (weekdayIndex(last) - weekday + 7) % 7;
+    return new Date(year, month+1, 0 - offset).getDate() ? new Date(last.getFullYear(), last.getMonth(), last.getDate()-offset) : null;
+  }
+  const first = new Date(year, month, 1);
+  const offset = (weekday - weekdayIndex(first) + 7) % 7;
+  const day = 1 + offset + (n-1)*7;
+  const d = new Date(year, month, day);
+  return d.getMonth() === month ? d : null;
+}
+
+function isValidOccurrenceDay(date, rec, startDate){
+  if (rec.freq === 'jour') {
+    const d = diffDays(date, startDate);
+    return d >= 0 && d % rec.interval === 0;
+  }
+  if (rec.freq === 'semaine') {
+    const wStart = mondayOf(startDate), wDate = mondayOf(date);
+    const weeks = Math.round((wDate - wStart) / (7*86400000));
+    return weeks >= 0 && weeks % rec.interval === 0 && (rec.weekdays||[]).includes(weekdayIndex(date));
+  }
+  if (rec.freq === 'mois') {
+    const months = (date.getFullYear()-startDate.getFullYear())*12 + (date.getMonth()-startDate.getMonth());
+    if (months < 0 || months % rec.interval !== 0) return false;
+    if (rec.monthMode === 'position') {
+      return (rec.positions||[]).some(pos => {
+        const wd = (rec.positionWeekdays||[]).some(w => {
+          const occ = nthWeekdayOfMonth(date.getFullYear(), date.getMonth(), w, pos);
+          return occ && diffDays(occ, date) === 0;
+        });
+        return wd;
+      });
+    }
+    return date.getDate() === (rec.dayOfMonth || 1);
+  }
+  if (rec.freq === 'annee') {
+    const years = date.getFullYear() - startDate.getFullYear();
+    return years >= 0 && years % rec.interval === 0 && date.getMonth() === startDate.getMonth() && date.getDate() === startDate.getDate();
+  }
+  return false;
+}
+
+function nextOccurrence(rec, searchFrom){
+  if (!rec || !rec.date) return null;
+  const [sy,sm,sd] = rec.date.split('-').map(Number);
+  const startDate = new Date(sy, sm-1, sd);
+  const [hh,mm] = (rec.time||'09:00').split(':').map(Number);
+  if (rec.kind === 'unique') {
+    const dt = new Date(sy, sm-1, sd, hh, mm);
+    return dt;
+  }
+  let cursor = dateOnly(searchFrom && searchFrom > startDate ? searchFrom : startDate);
+  for (let i = 0; i < 1500; i++) {
+    if (isValidOccurrenceDay(cursor, rec, startDate)) {
+      return new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), hh, mm);
+    }
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()+1);
+  }
+  return null;
+}
+
 const TABS = [
   { id: 'immediat', label: 'Immédiat' },
   { id: 'differe',  label: 'Différé' },
   { id: 'planifie', label: 'Planifié' },
+  { id: 'tous',     label: 'Tous' },
 ];
 
 const STORAGE_KEY = 'memo_items_v1';
 const LISTS_KEY = 'memo_lists_v1';
+const SETTINGS_KEY = 'memo_settings_v1';
+function loadSettings(){
+  const def = { colors:{}, soundDataUrl:null, soundName:null, blinkBorderColor:'#C94A4A', blinkCameraColor:'#4A6FA5' };
+  try { return Object.assign(def, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch(e){ return def; }
+}
+function saveSettings(v){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(v)); }
+function catColor(id){ return (settings.colors && settings.colors[id]) || catById(id).color; }
 
 function loadItems(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e){ return []; } }
 function saveItems(v){ localStorage.setItem(STORAGE_KEY, JSON.stringify(v)); }
@@ -135,12 +393,26 @@ function catIndex(id){ return CATEGORIES.findIndex(c => c.id === id); }
 
 let items = loadItems();
 let lists = loadLists();
+let settings = loadSettings();
 let activeTab = 'immediat';
 let activeFilter = 'all';
 let editingId = null;
 let pendingCat = CATEGORIES[0].id;
 let pendingMode = 'immediat';
+let pendingPlanifie = false;
 let pendingPick = '';
+let pendingConnType = 'bt';
+let pendingRec = { kind:'recurrent', date:'', time:'09:00', freq:'jour', interval:1, weekdays:[], monthMode:'jourFixe', dayOfMonth:1, positions:[1], positionWeekdays:[0] };
+function defaultRec(){
+  const d = new Date();
+  const wd = (d.getDay() + 6) % 7;
+  return { kind:'recurrent', date: d.toISOString().slice(0,10), time:'09:00', freq:'jour', interval:1, weekdays:[wd], monthMode:'jourFixe', dayOfMonth: d.getDate(), positions:[1], positionWeekdays:[wd] };
+}
+
+function effectiveListKey(cat){
+  if (cat.connTypes) return cat.id + '_' + pendingConnType;
+  return cat.listKey;
+}
 
 const screenList = document.getElementById('screenList');
 const screenEdit = document.getElementById('screenEdit');
@@ -153,15 +425,45 @@ const editTitle = document.getElementById('editTitle');
 const btnDelete = document.getElementById('btnDelete');
 const fieldMode = document.getElementById('fieldMode');
 const modeSeg = document.getElementById('modeSeg');
+const planSeg = document.getElementById('planSeg');
 const modeHelp = document.getElementById('modeHelp');
 const fieldPicker = document.getElementById('fieldPicker');
 const pickerLabel = document.getElementById('pickerLabel');
+const connTypeSeg = document.getElementById('connTypeSeg');
 const selPicker = document.getElementById('selPicker');
+const btnAddPicker = document.getElementById('btnAddPicker');
 const addPickerBox = document.getElementById('addPickerBox');
 const inpNewPicker = document.getElementById('inpNewPicker');
 const btnManage = document.getElementById('btnManage');
 const manageBox = document.getElementById('manageBox');
 const fieldPlanifie = document.getElementById('fieldPlanifie');
+const recKindSeg = document.getElementById('recKindSeg');
+const recDateLabel = document.getElementById('recDateLabel');
+const inpRecDate = document.getElementById('inpRecDate');
+const inpRecTime = document.getElementById('inpRecTime');
+const recRecurrentBlock = document.getElementById('recRecurrentBlock');
+const recFreqSeg = document.getElementById('recFreqSeg');
+const inpRecInterval = document.getElementById('inpRecInterval');
+const recIntervalUnit = document.getElementById('recIntervalUnit');
+const recWeekdaysBlock = document.getElementById('recWeekdaysBlock');
+const recWeekdaysEl = document.getElementById('recWeekdays');
+const recMonthBlock = document.getElementById('recMonthBlock');
+const recMonthModeSeg = document.getElementById('recMonthModeSeg');
+const recMonthFixedBox = document.getElementById('recMonthFixedBox');
+const inpRecDayOfMonth = document.getElementById('inpRecDayOfMonth');
+const recMonthPositionBox = document.getElementById('recMonthPositionBox');
+const recPositionMulti = document.getElementById('recPositionMulti');
+const recPositionDayMulti = document.getElementById('recPositionDayMulti');
+const recSummary = document.getElementById('recSummary');
+const screenSettings = document.getElementById('screenSettings');
+const screenArchive = document.getElementById('screenArchive');
+const colorList = document.getElementById('colorList');
+const soundNameEl = document.getElementById('soundName');
+const inpSoundFile = document.getElementById('inpSoundFile');
+const audioPreview = document.getElementById('audioPreview');
+const archiveList = document.getElementById('archiveList');
+const searchBar = document.getElementById('searchBar');
+const inpSearch = document.getElementById('inpSearch');
 
 function renderTabs(){
   tabsEl.innerHTML = '';
@@ -176,25 +478,172 @@ function renderTabs(){
 
 function renderFilters(){
   filtersEl.innerHTML = '';
-  const all = document.createElement('span');
-  all.className = 'chip' + (activeFilter === 'all' ? ' active' : '');
-  all.textContent = 'Tous';
+  const visibleCats = CATEGORIES.filter(c => activeTab === 'tous' || activeTab === 'planifie' || c.modes.includes(activeTab));
+  filtersEl.style.gridTemplateColumns = `repeat(${visibleCats.length + 1}, 1fr)`;
+  const all = document.createElement('button');
+  all.type = 'button';
+  all.className = 'iconChip' + (activeFilter === 'all' ? ' active' : '');
+  all.setAttribute('aria-label', 'Tous');
+  all.title = 'Tous';
+  all.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
   all.onclick = () => { activeFilter = 'all'; render(); };
   filtersEl.appendChild(all);
-  CATEGORIES.forEach(c => {
-    if (!c.modes.includes(activeTab)) return;
-    const chip = document.createElement('span');
-    chip.className = 'chip' + (activeFilter === c.id ? ' active' : '');
-    chip.textContent = c.label;
+  visibleCats.forEach(c => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'iconChip' + (activeFilter === c.id ? ' active' : '');
+    chip.setAttribute('aria-label', c.label);
+    chip.title = c.label;
+    chip.innerHTML = ICONS[c.id];
     chip.onclick = () => { activeFilter = c.id; render(); };
     filtersEl.appendChild(chip);
   });
 }
 
+function itemBucket(item){
+  if (item.acknowledged) return null;
+  if (item.planifie && !item.active) return 'planifie';
+  return item.mode;
+}
+
+let swRegistration = null;
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(reg => { swRegistration = reg; }).catch(() => {});
+}
+
+async function sendCategoryNotification(catId){
+  if (!swRegistration || Notification.permission !== 'granted') return;
+  const cat = catById(catId);
+  const pending = items.filter(i => i.cat === catId && i.pendingNotif && !i.acknowledged);
+  if (pending.length === 0) return;
+  const titles = pending.map(i => i.titre);
+  const body = titles.length === 1 ? titles[0] : titles.map(t => '• ' + t).join('\n');
+  try {
+    await swRegistration.showNotification('Mémo — ' + cat.label, {
+      body,
+      tag: 'memo-cat-' + catId,
+      requireInteraction: true,
+      renotify: true,
+      data: { catId },
+      actions: [
+        { action: 'edit', title: 'Modifier' },
+        { action: 'clear', title: 'Effacer' },
+      ],
+    });
+  } catch (e) { /* notification indisponible */ }
+}
+
+function fireImmediate(item){
+  item.pendingNotif = true;
+  saveItems(items);
+  sendCategoryNotification(item.cat);
+}
+
+function checkDueItems(){
+  const now = new Date();
+  let changed = false;
+  items.forEach(item => {
+    if (!item.planifie || item.active || !item.recurrence) return;
+    const occ = nextOccurrence(item.recurrence, item.lastFiredOccurrence ? new Date(item.lastFiredOccurrence) : null);
+    if (!occ || occ > now) return;
+    const occKey = occ.toISOString();
+    if (item.lastFiredOccurrence === occKey) return;
+    item.lastFiredOccurrence = occKey;
+    changed = true;
+    if (item.mode === 'immediat') {
+      fireImmediate(item);
+      if (item.recurrence.kind === 'unique') item.acknowledged = true;
+    } else {
+      item.active = true;
+    }
+  });
+  if (changed) { saveItems(items); render(); }
+}
+checkDueItems();
+setInterval(checkDueItems, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDueItems(); });
+
+function itemPickText(item, cat){
+  if (!item.pick) return '';
+  if (cat.connTypes) {
+    const ctLabel = (cat.connTypes.find(c => c.id === item.connType) || {}).label || '';
+    return ctLabel + ' · ' + item.pick;
+  }
+  if (cat.listKey) return item.pick;
+  return '';
+}
+
+function appendRows(container, itemsArr){
+  itemsArr.forEach(item => {
+    const cat = catById(item.cat);
+    const pick = itemPickText(item, cat);
+    const recLine = (item.planifie && item.recurrence) ? escapeHtml(recurrenceSummary(item.recurrence)) : '';
+    const row = document.createElement('div');
+    row.className = 'groupRow';
+    row.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14.5px;font-weight:600">${escapeHtml(item.titre)}${pick ? ` <span style="color:var(--muted);font-weight:600">(${escapeHtml(pick)})</span>` : ''}</div>
+        ${recLine ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${recLine}</div>` : ''}
+      </div>
+    `;
+    row.onclick = () => openEdit(item.id);
+    container.appendChild(row);
+  });
+}
+
+function makeGroupCard(cat, itemsArr, showHeader){
+  const wrap = document.createElement('div');
+  wrap.className = 'groupCard';
+  wrap.style.borderLeft = '4px solid ' + catColor(cat.id);
+  if (showHeader) {
+    const header = document.createElement('div');
+    header.className = 'groupHeader';
+    header.innerHTML = `
+      <span style="width:9px;height:9px;border-radius:50%;background:${catColor(cat.id)};flex-shrink:0"></span>
+      <span style="font-size:12.5px;font-weight:700;flex:1">${cat.label}</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700">${itemsArr.length}</span>
+    `;
+    wrap.appendChild(header);
+  }
+  appendRows(wrap, itemsArr);
+  return wrap;
+}
+
 function renderList(){
   listEl.innerHTML = '';
-  let visible = items.filter(i => i.mode === activeTab && (activeFilter === 'all' || i.cat === activeFilter));
-  visible.sort((a,b) => catIndex(a.cat) - catIndex(b.cat));
+
+  if (activeTab === 'tous') {
+    let visible = items.filter(i => activeFilter === 'all' || i.cat === activeFilter);
+    if (visible.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = "Aucun mémo pour l'instant.\nAppuie sur + pour en créer un.";
+      listEl.appendChild(empty);
+      return;
+    }
+    const byCat = {};
+    visible.forEach(i => { (byCat[i.cat] = byCat[i.cat] || []).push(i); });
+    CATEGORIES.forEach(cat => {
+      const arr = byCat[cat.id];
+      if (!arr || arr.length === 0) return;
+      const header = document.createElement('div');
+      header.style.cssText = 'display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin:10px 2px 2px 2px';
+      header.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${catColor(cat.id)};flex-shrink:0"></span><span>${cat.label}</span>`;
+      listEl.appendChild(header);
+      ['immediat','differe','planifie'].forEach(mode => {
+        const group = arr.filter(i => itemBucket(i) === mode);
+        if (group.length === 0) return;
+        const divider = document.createElement('div');
+        divider.style.cssText = 'display:flex;align-items:center;gap:8px;margin:6px 0 2px 0';
+        divider.innerHTML = `<div style="flex:1;border-top:1px solid var(--line)"></div><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">${MODE_LABELS[mode]}</span><div style="flex:1;border-top:1px solid var(--line)"></div>`;
+        listEl.appendChild(divider);
+        listEl.appendChild(makeGroupCard(cat, group, false));
+      });
+    });
+    return;
+  }
+
+  let visible = items.filter(i => itemBucket(i) === activeTab && (activeFilter === 'all' || i.cat === activeFilter));
   if (visible.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'empty';
@@ -202,25 +651,264 @@ function renderList(){
     listEl.appendChild(empty);
     return;
   }
-  visible.forEach(item => {
-    const cat = catById(item.cat);
-    let subtitle = cat.listKey && item.pick ? escapeHtml(item.pick) : '';
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <span style="width:10px;height:10px;border-radius:50%;background:${cat.color};flex-shrink:0"></span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:15px;font-weight:700">${escapeHtml(item.titre)}</div>
-        ${subtitle ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${subtitle}</div>` : ''}
-      </div>
-      <span style="font-size:11px;font-weight:700;color:${cat.color};background:${cat.color}1A;padding:4px 9px;border-radius:7px">${cat.label}</span>
+
+  if (activeTab === 'planifie') {
+    const FREQ_ORDER = ['sans','jour','semaine','mois','annee'];
+    const FREQ_GROUP_LABELS = { sans:'Sans récurrence', jour:'Jour', semaine:'Semaine', mois:'Mois', annee:'Année' };
+    const freqOf = (i) => (i.recurrence && i.recurrence.kind === 'unique') ? 'sans' : ((i.recurrence && i.recurrence.freq) || 'sans');
+    FREQ_ORDER.forEach(freq => {
+      const group = visible.filter(i => freqOf(i) === freq);
+      if (group.length === 0) return;
+      const divider = document.createElement('div');
+      divider.style.cssText = 'display:flex;align-items:center;gap:8px;margin:10px 0 2px 0';
+      divider.innerHTML = `<div style="flex:1;border-top:1px solid var(--line)"></div><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">${FREQ_GROUP_LABELS[freq]}</span><div style="flex:1;border-top:1px solid var(--line)"></div>`;
+      listEl.appendChild(divider);
+      const byCat = {};
+      group.forEach(i => { (byCat[i.cat] = byCat[i.cat] || []).push(i); });
+      CATEGORIES.forEach(cat => {
+        const arr = byCat[cat.id];
+        if (!arr || arr.length === 0) return;
+        listEl.appendChild(makeGroupCard(cat, arr, true));
+      });
+    });
+    return;
+  }
+
+  const byCat = {};
+  visible.forEach(i => { (byCat[i.cat] = byCat[i.cat] || []).push(i); });
+  CATEGORIES.forEach(cat => {
+    const arr = byCat[cat.id];
+    if (!arr || arr.length === 0) return;
+    listEl.appendChild(makeGroupCard(cat, arr, true));
+  });
+}
+
+function renderSettings(){
+  soundNameEl.textContent = settings.soundName || 'Son par défaut';
+  colorList.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px';
+    row.innerHTML = `
+      <span style="width:26px;height:26px;border-radius:8px;background:${catColor(cat.id)}1A;color:${catColor(cat.id)};display:flex;align-items:center;justify-content:center;flex-shrink:0">${ICONS[cat.id]}</span>
+      <span style="flex:1;font-size:14px;font-weight:600">${cat.label}</span>
+      <button type="button" class="colorSwatch" style="background:${catColor(cat.id)}"></button>
     `;
-    card.onclick = () => openEdit(item.id);
-    listEl.appendChild(card);
+    row.querySelector('.colorSwatch').addEventListener('click', () => {
+      openColorSheet(catColor(cat.id), (hex) => {
+        settings.colors[cat.id] = hex;
+        saveSettings(settings);
+        renderSettings();
+        render();
+      });
+    });
+    colorList.appendChild(row);
+  });
+
+  const blinkList = document.getElementById('blinkColorList');
+  blinkList.innerHTML = '';
+  [
+    {key:'blinkBorderColor', label:'Bordure d\'écran'},
+    {key:'blinkCameraColor', label:'Cercle caméra'},
+  ].forEach(b => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px';
+    row.innerHTML = `
+      <span style="flex:1;font-size:14px;font-weight:600">${b.label}</span>
+      <button type="button" class="colorSwatch" style="background:${settings[b.key]}"></button>
+    `;
+    row.querySelector('.colorSwatch').addEventListener('click', () => {
+      openColorSheet(settings[b.key], (hex) => {
+        settings[b.key] = hex;
+        saveSettings(settings);
+        renderSettings();
+      });
+    });
+    blinkList.appendChild(row);
+  });
+}
+
+document.getElementById('btnPickSound').addEventListener('click', () => inpSoundFile.click());
+inpSoundFile.addEventListener('change', () => {
+  const file = inpSoundFile.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    settings.soundDataUrl = reader.result;
+    settings.soundName = file.name;
+    saveSettings(settings);
+    renderSettings();
+  };
+  reader.readAsDataURL(file);
+});
+document.getElementById('btnTestSound').addEventListener('click', () => {
+  if (!settings.soundDataUrl) return;
+  audioPreview.src = settings.soundDataUrl;
+  audioPreview.play().catch(() => {});
+});
+document.getElementById('btnResetColors').addEventListener('click', () => {
+  settings.colors = {};
+  saveSettings(settings);
+  renderSettings();
+  render();
+});
+document.getElementById('btnSettings').addEventListener('click', () => {
+  renderSettings();
+  screenList.classList.add('hidden');
+  screenSettings.classList.remove('hidden');
+});
+document.getElementById('btnBackSettings').addEventListener('click', () => {
+  screenSettings.classList.add('hidden');
+  screenList.classList.remove('hidden');
+});
+
+function renderArchive(){
+  archiveList.innerHTML = '';
+  const all = [...items].sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  if (all.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = "Aucun mémo créé pour l'instant.";
+    archiveList.appendChild(empty);
+    return;
+  }
+  all.forEach(item => {
+    const cat = catById(item.cat);
+    const pick = itemPickText(item, cat);
+    const row = document.createElement('div');
+    row.className = 'card';
+    row.style.borderLeft = '4px solid ' + catColor(cat.id);
+    row.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14.5px;font-weight:600">${escapeHtml(item.titre)}${pick ? ` <span style="color:var(--muted);font-weight:600">(${escapeHtml(pick)})</span>` : ''}</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${cat.label} · ${item.planifie ? 'Planifié' : MODE_LABELS[item.mode]}${item.createdAt ? ' · ' + new Date(item.createdAt).toLocaleDateString('fr-FR') : ''}</div>
+      </div>
+    `;
+    row.onclick = () => { screenArchive.classList.add('hidden'); openEdit(item.id); };
+    archiveList.appendChild(row);
+  });
+}
+document.getElementById('btnArchive').addEventListener('click', () => {
+  renderArchive();
+  screenList.classList.add('hidden');
+  screenArchive.classList.remove('hidden');
+});
+document.getElementById('btnBackArchive').addEventListener('click', () => {
+  screenArchive.classList.add('hidden');
+  screenList.classList.remove('hidden');
+});
+
+let searchActive = false;
+document.getElementById('btnSearch').addEventListener('click', () => {
+  searchActive = !searchActive;
+  searchBar.classList.toggle('hidden', !searchActive);
+  if (searchActive) { inpSearch.value = ''; inpSearch.focus(); } 
+  render();
+});
+inpSearch.addEventListener('input', render);
+
+function renderSearchResults(){
+  listEl.innerHTML = '';
+  const q = inpSearch.value.trim().toLowerCase();
+  if (!q) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'Tape un mot pour rechercher parmi tous tes mémos.';
+    listEl.appendChild(empty);
+    return;
+  }
+  const matches = items.filter(i => i.titre.toLowerCase().includes(q) || (i.pick||'').toLowerCase().includes(q));
+  if (matches.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'Aucun résultat pour "' + q + '".';
+    listEl.appendChild(empty);
+    return;
+  }
+  matches.sort((a,b) => catIndex(a.cat) - catIndex(b.cat));
+  const byCat = {};
+  matches.forEach(i => { (byCat[i.cat] = byCat[i.cat] || []).push(i); });
+  CATEGORIES.forEach(cat => {
+    const arr = byCat[cat.id];
+    if (!arr || arr.length === 0) return;
+    listEl.appendChild(makeGroupCard(cat, arr, true));
+  });
+}
+
+function openSheet(titleText, buildFn){
+  const backdrop = document.createElement('div');
+  backdrop.className = 'sheetBackdrop';
+  const card = document.createElement('div');
+  card.className = 'sheetCard';
+  const title = document.createElement('div');
+  title.className = 'sheetTitle';
+  title.textContent = titleText;
+  card.appendChild(title);
+  const close = () => backdrop.remove();
+  backdrop.appendChild(card);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+  buildFn(card, close);
+  document.body.appendChild(backdrop);
+  return close;
+}
+
+const PALETTE = ['#4A6FA5','#C97B4A','#7A8C64','#9B5DE5','#3E9B8F','#D97757','#5B5648',
+                  '#C94A4A','#E0A458','#4AA876','#5B8DD9','#B85C9E','#8A8477','#2D2A24',
+                  '#F2EFE8'];
+
+function openColorSheet(current, onPick){
+  openSheet('Choisir une couleur', (card, close) => {
+    const grid = document.createElement('div');
+    grid.className = 'paletteGrid';
+    PALETTE.forEach(c => {
+      const sw = document.createElement('div');
+      sw.className = 'paletteSwatch' + (c.toLowerCase() === (current||'').toLowerCase() ? ' sel' : '');
+      sw.style.background = c;
+      sw.onclick = () => { onPick(c); close(); };
+      grid.appendChild(sw);
+    });
+    card.appendChild(grid);
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;align-items:center';
+    const preview = document.createElement('span');
+    preview.style.cssText = 'width:32px;height:32px;border-radius:8px;border:1px solid var(--line);flex-shrink:0;background:' + (current||'#888888');
+    const hexInput = document.createElement('input');
+    hexInput.className = 'text'; hexInput.value = current || ''; hexInput.placeholder = '#RRGGBB'; hexInput.style.flex = '1';
+    hexInput.addEventListener('input', () => {
+      if (/^#[0-9a-fA-F]{6}$/.test(hexInput.value)) preview.style.background = hexInput.value;
+    });
+    const btn = document.createElement('button');
+    btn.className = 'btn small'; btn.type = 'button'; btn.textContent = 'Valider';
+    btn.onclick = () => {
+      if (/^#[0-9a-fA-F]{6}$/.test(hexInput.value)) { onPick(hexInput.value); close(); }
+    };
+    row.appendChild(preview); row.appendChild(hexInput); row.appendChild(btn);
+    card.appendChild(row);
+  });
+}
+
+function openListSheet(titleText, optionsArr, current, onPick){
+  openSheet(titleText, (card, close) => {
+    if (optionsArr.length === 0) {
+      const p = document.createElement('div');
+      p.style.cssText = 'font-size:13px;color:var(--muted);padding:6px 2px';
+      p.textContent = 'Aucun élément dans la liste pour le moment — ajoute-en un avec le bouton +.';
+      card.appendChild(p);
+      return;
+    }
+    optionsArr.forEach(v => {
+      const opt = document.createElement('div');
+      opt.className = 'listOption' + (v === current ? ' sel' : '');
+      opt.textContent = v;
+      opt.onclick = () => { onPick(v); close(); };
+      card.appendChild(opt);
+    });
   });
 }
 
 function render(){
+  if (searchActive) { renderSearchResults(); return; }
   renderTabs();
   if (!catById(activeFilter) && activeFilter !== 'all') activeFilter = 'all';
   renderFilters();
@@ -230,9 +918,12 @@ function render(){
 function renderCatPicker(){
   catPicker.innerHTML = '';
   CATEGORIES.forEach(c => {
-    const chip = document.createElement('span');
-    chip.className = 'chip' + (pendingCat === c.id ? ' active' : '');
-    chip.textContent = c.label;
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'iconChip' + (pendingCat === c.id ? ' active' : '');
+    chip.setAttribute('aria-label', c.label);
+    chip.title = c.label;
+    chip.innerHTML = ICONS[c.id];
     chip.onclick = () => {
       pendingCat = c.id;
       if (!catById(pendingCat).modes.includes(pendingMode)) pendingMode = catById(pendingCat).modes[0];
@@ -257,61 +948,119 @@ function renderModeSeg(){
   modeHelp.textContent = MODE_HELP[pendingMode];
 }
 
+function renderPlanSeg(){
+  planSeg.innerHTML = '';
+  [{id:false,label:'Non'},{id:true,label:'Oui'}].forEach((o,i) => {
+    const el = document.createElement('span');
+    el.className = 'seg' + (pendingPlanifie === o.id ? ' sel' : '');
+    el.textContent = o.label;
+    el.style.cssText = 'flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;cursor:pointer;' + (i>0 ? 'border-left:1px solid var(--line)' : '');
+    el.onclick = () => { pendingPlanifie = o.id; renderConditionalFields(); };
+    planSeg.appendChild(el);
+  });
+}
+
+const selPickerLabel = document.getElementById('selPickerLabel');
+
 function renderPickerSelect(){
   const cat = catById(pendingCat);
-  if (!cat.listKey) return;
-  const arr = lists[cat.listKey] || [];
-  selPicker.innerHTML = '';
-  arr.forEach(v => {
-    const o = document.createElement('option');
-    o.value = v; o.textContent = v;
-    if (v === pendingPick) o.selected = true;
-    selPicker.appendChild(o);
-  });
-  const addOpt = document.createElement('option');
-  addOpt.value = '__add__';
-  addOpt.textContent = '+ Ajouter…';
-  selPicker.appendChild(addOpt);
-  if (!pendingPick && arr.length > 0) { pendingPick = arr[0]; selPicker.value = arr[0]; }
+  const lk = effectiveListKey(cat);
+  if (!lk) return;
+  const arr = lists[lk] || [];
+  if (arr.length === 0) {
+    pendingPick = '';
+    selPickerLabel.textContent = 'Aucun élément — appuie sur +';
+  } else {
+    if (!arr.includes(pendingPick)) pendingPick = arr[0];
+    selPickerLabel.textContent = pendingPick;
+  }
   renderManageBox();
 }
 
 function renderManageBox(){
   const cat = catById(pendingCat);
-  if (!cat.listKey) return;
-  const arr = lists[cat.listKey] || [];
+  const lk = effectiveListKey(cat);
+  if (!lk) return;
+  const arr = lists[lk] || [];
   manageBox.innerHTML = '';
+  if (arr.length === 0) {
+    const p = document.createElement('div');
+    p.style.cssText = 'font-size:12px;color:var(--muted);padding:4px';
+    p.textContent = 'Aucun élément dans la liste pour le moment.';
+    manageBox.appendChild(p);
+    return;
+  }
   arr.forEach((v, i) => {
     const row = document.createElement('div');
     row.className = 'manageRow';
-    row.innerHTML = `<span>${escapeHtml(v)}</span>`;
+    const span = document.createElement('span');
+    span.textContent = v;
+    row.appendChild(span);
+    const ren = document.createElement('button');
+    ren.className = 'iconBtn'; ren.textContent = '✎'; ren.type = 'button';
+    ren.onclick = () => {
+      const inp = document.createElement('input');
+      inp.className = 'text'; inp.value = v; inp.style.cssText = 'flex:1;padding:4px 8px;font-size:13px';
+      row.replaceChild(inp, span);
+      inp.focus(); inp.select();
+      const commit = () => {
+        const val = inp.value.trim();
+        if (val) {
+          if (pendingPick === arr[i]) pendingPick = val;
+          arr[i] = val;
+          saveLists(lists);
+        }
+        renderPickerSelect();
+      };
+      inp.addEventListener('blur', commit);
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
+    };
     const up = document.createElement('button');
-    up.className = 'iconBtn'; up.textContent = '↑'; up.disabled = i === 0;
+    up.className = 'iconBtn'; up.textContent = '↑'; up.type = 'button'; up.disabled = i === 0;
     up.onclick = () => { [arr[i-1],arr[i]] = [arr[i],arr[i-1]]; saveLists(lists); renderPickerSelect(); };
     const down = document.createElement('button');
-    down.className = 'iconBtn'; down.textContent = '↓'; down.disabled = i === arr.length-1;
+    down.className = 'iconBtn'; down.textContent = '↓'; down.type = 'button'; down.disabled = i === arr.length-1;
     down.onclick = () => { [arr[i+1],arr[i]] = [arr[i],arr[i+1]]; saveLists(lists); renderPickerSelect(); };
     const del = document.createElement('button');
-    del.className = 'iconBtn'; del.textContent = '×';
+    del.className = 'iconBtn'; del.textContent = '×'; del.type = 'button';
     del.onclick = () => {
       arr.splice(i,1); saveLists(lists);
       if (pendingPick === v) pendingPick = arr[0] || '';
       renderPickerSelect();
     };
-    row.appendChild(up); row.appendChild(down); row.appendChild(del);
+    row.appendChild(ren); row.appendChild(up); row.appendChild(down); row.appendChild(del);
     manageBox.appendChild(row);
   });
 }
 
 btnManage.addEventListener('click', () => { manageBox.classList.toggle('hidden'); });
 
-selPicker.addEventListener('change', () => {
-  if (selPicker.value === '__add__') {
-    addPickerBox.classList.remove('hidden');
-    inpNewPicker.value = '';
-    inpNewPicker.focus();
-  } else {
-    pendingPick = selPicker.value;
+selPicker.addEventListener('click', () => {
+  const cat = catById(pendingCat);
+  const lk = effectiveListKey(cat);
+  const arr = lists[lk] || [];
+  openListSheet(cat.pickerLabel || 'Choisir', arr, pendingPick, (v) => {
+    pendingPick = v;
+    renderPickerSelect();
+  });
+});
+
+const btnPickBluetooth = document.getElementById('btnPickBluetooth');
+
+btnAddPicker.addEventListener('click', () => {
+  addPickerBox.classList.remove('hidden');
+  inpNewPicker.value = '';
+  const cat = catById(pendingCat);
+  btnPickBluetooth.style.display = (cat.connTypes && pendingConnType === 'bt' && navigator.bluetooth) ? 'block' : 'none';
+  inpNewPicker.focus();
+});
+
+btnPickBluetooth.addEventListener('click', async () => {
+  try {
+    const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+    if (device && device.name) inpNewPicker.value = device.name;
+  } catch (e) {
+    // utilisateur a annulé ou aucun appareil BLE trouvé — saisie manuelle reste disponible
   }
 });
 
@@ -319,8 +1068,9 @@ document.getElementById('btnConfirmAdd').addEventListener('click', () => {
   const val = inpNewPicker.value.trim();
   if (!val) return;
   const cat = catById(pendingCat);
-  if (!lists[cat.listKey]) lists[cat.listKey] = [];
-  lists[cat.listKey].push(val);
+  const lk = effectiveListKey(cat);
+  if (!lists[lk]) lists[lk] = [];
+  lists[lk].push(val);
   saveLists(lists);
   pendingPick = val;
   addPickerBox.classList.add('hidden');
@@ -328,7 +1078,7 @@ document.getElementById('btnConfirmAdd').addEventListener('click', () => {
 });
 
 function renderConditionalFields(){
-  catPicker.querySelectorAll('.chip').forEach((chip, i) => {
+  catPicker.querySelectorAll('.iconChip').forEach((chip, i) => {
     chip.classList.toggle('active', CATEGORIES[i].id === pendingCat);
   });
   const cat = catById(pendingCat);
@@ -338,37 +1088,176 @@ function renderConditionalFields(){
     renderModeSeg();
   } else {
     fieldMode.classList.add('hidden');
+    pendingMode = cat.modes[0];
   }
+  renderPlanSeg();
 
-  const showPicker = cat.listKey && (pendingMode === 'immediat' || pendingMode === 'differe' || cat.special === 'email');
+  const hasList = !!(cat.listKey || cat.connTypes);
+  const showPicker = hasList;
   if (showPicker) {
     fieldPicker.classList.remove('hidden');
     pickerLabel.textContent = cat.pickerLabel || 'Choix';
     addPickerBox.classList.add('hidden');
     manageBox.classList.add('hidden');
+    if (cat.connTypes) {
+      connTypeSeg.classList.remove('hidden');
+      connTypeSeg.innerHTML = '';
+      cat.connTypes.forEach((ct, i) => {
+        const el = document.createElement('span');
+        el.className = 'seg' + (pendingConnType === ct.id ? ' sel' : '');
+        el.textContent = ct.label;
+        el.style.cssText = 'flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;cursor:pointer;' + (i>0 ? 'border-left:1px solid var(--line)' : '');
+        el.onclick = () => { pendingConnType = ct.id; pendingPick = ''; renderConditionalFields(); };
+        connTypeSeg.appendChild(el);
+      });
+    } else {
+      connTypeSeg.classList.add('hidden');
+    }
     renderPickerSelect();
   } else {
     fieldPicker.classList.add('hidden');
   }
 
-  if (pendingMode === 'planifie') {
+  if (pendingPlanifie) {
     fieldPlanifie.classList.remove('hidden');
+    renderPlanifieForm();
   } else {
     fieldPlanifie.classList.add('hidden');
   }
 }
 
+function renderRecKindSeg(){
+  recKindSeg.innerHTML = '';
+  [{id:'recurrent',label:'Récurrent'},{id:'unique',label:'Une seule fois'}].forEach((o,i) => {
+    const el = document.createElement('span');
+    el.className = 'seg' + (pendingRec.kind === o.id ? ' sel' : '');
+    el.textContent = o.label;
+    el.style.cssText = 'flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;cursor:pointer;' + (i>0 ? 'border-left:1px solid var(--line)' : '');
+    el.onclick = () => { pendingRec.kind = o.id; renderPlanifieForm(); };
+    recKindSeg.appendChild(el);
+  });
+  recDateLabel.textContent = pendingRec.kind === 'unique' ? "Date d'activation" : 'Date de début';
+}
+
+function renderRecFreqSeg(){
+  recFreqSeg.innerHTML = '';
+  FREQ_OPTIONS.forEach((o,i) => {
+    const el = document.createElement('span');
+    el.className = 'seg' + (pendingRec.freq === o.id ? ' sel' : '');
+    el.textContent = o.label;
+    el.style.cssText = 'flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;cursor:pointer;' + (i>0 ? 'border-left:1px solid var(--line)' : '');
+    el.onclick = () => { pendingRec.freq = o.id; renderPlanifieForm(); };
+    recFreqSeg.appendChild(el);
+  });
+}
+
+function renderRecWeekdays(){
+  recWeekdaysEl.innerHTML = '';
+  WEEKDAYS.forEach(w => {
+    const el = document.createElement('span');
+    const on = pendingRec.weekdays.includes(w.id);
+    el.textContent = w.label;
+    el.style.cssText = 'width:36px;height:36px;border-radius:50%;border:1px solid var(--line);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;' +
+      (on ? 'background:var(--fg);color:var(--bg);border-color:var(--fg)' : 'color:var(--muted);background:var(--card)');
+    el.onclick = () => {
+      const idx = pendingRec.weekdays.indexOf(w.id);
+      if (idx >= 0) { if (pendingRec.weekdays.length > 1) pendingRec.weekdays.splice(idx,1); }
+      else pendingRec.weekdays.push(w.id);
+      renderPlanifieForm();
+    };
+    recWeekdaysEl.appendChild(el);
+  });
+}
+
+function renderRecMonthModeSeg(){
+  recMonthModeSeg.innerHTML = '';
+  [{id:'jourFixe',label:'Jour fixe'},{id:'position',label:'Position'}].forEach((o,i) => {
+    const el = document.createElement('span');
+    el.className = 'seg' + (pendingRec.monthMode === o.id ? ' sel' : '');
+    el.textContent = o.label;
+    el.style.cssText = 'flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;cursor:pointer;' + (i>0 ? 'border-left:1px solid var(--line)' : '');
+    el.onclick = () => { pendingRec.monthMode = o.id; renderPlanifieForm(); };
+    recMonthModeSeg.appendChild(el);
+  });
+  recMonthFixedBox.classList.toggle('hidden', pendingRec.monthMode !== 'jourFixe');
+  recMonthPositionBox.classList.toggle('hidden', pendingRec.monthMode !== 'position');
+}
+
+function renderRecPositionMulti(){
+  recPositionMulti.innerHTML = '';
+  POSITIONS.forEach(p => {
+    const el = document.createElement('span');
+    const on = pendingRec.positions.includes(p.id);
+    el.textContent = p.label;
+    el.style.cssText = 'padding:8px 12px;border-radius:999px;border:1px solid var(--line);font-size:12px;font-weight:700;cursor:pointer;' +
+      (on ? 'background:var(--fg);color:var(--bg);border-color:var(--fg)' : 'color:var(--muted);background:var(--card)');
+    el.onclick = () => {
+      const idx = pendingRec.positions.indexOf(p.id);
+      if (idx >= 0) { if (pendingRec.positions.length > 1) pendingRec.positions.splice(idx,1); }
+      else pendingRec.positions.push(p.id);
+      renderPlanifieForm();
+    };
+    recPositionMulti.appendChild(el);
+  });
+
+  recPositionDayMulti.innerHTML = '';
+  WEEKDAYS.forEach(w => {
+    const el = document.createElement('span');
+    const on = pendingRec.positionWeekdays.includes(w.id);
+    el.textContent = w.label;
+    el.style.cssText = 'width:36px;height:36px;border-radius:50%;border:1px solid var(--line);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;' +
+      (on ? 'background:var(--fg);color:var(--bg);border-color:var(--fg)' : 'color:var(--muted);background:var(--card)');
+    el.onclick = () => {
+      const idx = pendingRec.positionWeekdays.indexOf(w.id);
+      if (idx >= 0) { if (pendingRec.positionWeekdays.length > 1) pendingRec.positionWeekdays.splice(idx,1); }
+      else pendingRec.positionWeekdays.push(w.id);
+      renderPlanifieForm();
+    };
+    recPositionDayMulti.appendChild(el);
+  });
+}
+
+function renderPlanifieForm(){
+  renderRecKindSeg();
+  inpRecDate.value = pendingRec.date;
+  inpRecTime.value = pendingRec.time;
+  recRecurrentBlock.classList.toggle('hidden', pendingRec.kind !== 'recurrent');
+  if (pendingRec.kind === 'recurrent') {
+    renderRecFreqSeg();
+    inpRecInterval.value = pendingRec.interval;
+    recIntervalUnit.textContent = FREQ_UNIT[pendingRec.freq];
+    recWeekdaysBlock.classList.toggle('hidden', pendingRec.freq !== 'semaine');
+    if (pendingRec.freq === 'semaine') renderRecWeekdays();
+    recMonthBlock.classList.toggle('hidden', pendingRec.freq !== 'mois');
+    if (pendingRec.freq === 'mois') { renderRecMonthModeSeg(); renderRecPositionMulti(); inpRecDayOfMonth.value = pendingRec.dayOfMonth; }
+  }
+  recSummary.textContent = recurrenceSummary(pendingRec);
+}
+
+[inpRecDate, inpRecTime, inpRecInterval, inpRecDayOfMonth].forEach(el => {
+  el.addEventListener('input', () => {
+    pendingRec.date = inpRecDate.value;
+    pendingRec.time = inpRecTime.value;
+    pendingRec.interval = parseInt(inpRecInterval.value, 10) || 1;
+    pendingRec.dayOfMonth = parseInt(inpRecDayOfMonth.value, 10) || 1;
+    recSummary.textContent = recurrenceSummary(pendingRec);
+  });
+});
 function openAdd(){
   editingId = null;
   inpTitre.value = '';
   pendingCat = (activeFilter !== 'all') ? activeFilter : CATEGORIES[0].id;
   pendingMode = catById(pendingCat).modes.includes(activeTab) ? activeTab : catById(pendingCat).modes[0];
+  pendingPlanifie = (activeTab === 'planifie');
   pendingPick = '';
+  pendingConnType = 'bt';
+  pendingRec = defaultRec();
   editTitle.textContent = 'Nouveau mémo';
   btnDelete.classList.add('hidden');
   renderCatPicker();
   screenList.classList.add('hidden');
   screenEdit.classList.remove('hidden');
+  setTimeout(() => inpTitre.focus(), 50);
 }
 
 function openEdit(id){
@@ -378,7 +1267,12 @@ function openEdit(id){
   inpTitre.value = item.titre;
   pendingCat = item.cat;
   pendingMode = item.mode;
+  pendingPlanifie = !!item.planifie;
   pendingPick = item.pick || '';
+  pendingConnType = item.connType || 'bt';
+  pendingRec = item.recurrence ? JSON.parse(JSON.stringify(item.recurrence)) : defaultRec();
+  if (!pendingRec.positions) pendingRec.positions = pendingRec.position ? [pendingRec.position] : [1];
+  if (!pendingRec.positionWeekdays) pendingRec.positionWeekdays = (pendingRec.positionWeekday !== undefined) ? [pendingRec.positionWeekday] : [0];
   editTitle.textContent = 'Modifier le mémo';
   btnDelete.classList.remove('hidden');
   renderCatPicker();
@@ -398,19 +1292,28 @@ document.getElementById('btnSave').addEventListener('click', () => {
   const titre = inpTitre.value.trim();
   if (!titre) { inpTitre.focus(); return; }
   const cat = catById(pendingCat);
-  const data = { titre, cat: pendingCat, mode: pendingMode };
-  if (cat.listKey && (pendingMode === 'immediat' || pendingMode === 'differe' || cat.special === 'email')) {
+  const data = { titre, cat: pendingCat, mode: cat.modes.length > 1 ? pendingMode : cat.modes[0], planifie: pendingPlanifie };
+  if (cat.listKey || cat.connTypes) {
     data.pick = pendingPick;
+    if (cat.connTypes) data.connType = pendingConnType;
   }
+  if (pendingPlanifie) {
+    data.recurrence = JSON.parse(JSON.stringify(pendingRec));
+  }
+  let newItem = null;
   if (editingId) {
     const item = items.find(i => i.id === editingId);
     Object.assign(item, data);
   } else {
-    items.push({ id: uid(), ...data });
+    newItem = { id: uid(), createdAt: Date.now(), ...data };
+    items.push(newItem);
   }
   saveItems(items);
   closeEdit();
   render();
+  if (newItem && newItem.mode === 'immediat' && !newItem.planifie) {
+    fireImmediate(newItem);
+  }
 });
 
 btnDelete.addEventListener('click', () => {
@@ -420,6 +1323,48 @@ btnDelete.addEventListener('click', () => {
   closeEdit();
   render();
 });
+
+function clearCategoryNotif(catId){
+  let changed = false;
+  items.forEach(i => {
+    if (i.cat === catId && i.pendingNotif && !i.acknowledged) {
+      i.acknowledged = true;
+      i.acknowledgedAt = Date.now();
+      changed = true;
+    }
+  });
+  if (changed) saveItems(items);
+  if (swRegistration) {
+    swRegistration.getNotifications({ tag: 'memo-cat-' + catId }).then(list => list.forEach(n => n.close()));
+  }
+  render();
+}
+
+function goToCatView(catId){
+  activeTab = 'immediat';
+  activeFilter = catId;
+  screenEdit.classList.add('hidden');
+  screenSettings.classList.add('hidden');
+  screenArchive.classList.add('hidden');
+  screenList.classList.remove('hidden');
+  render();
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'memo-clear') clearCategoryNotif(event.data.catId);
+    if (event.data && event.data.type === 'memo-catview') goToCatView(event.data.catId);
+  });
+}
+
+(function handleStartupParams(){
+  const params = new URLSearchParams(location.search);
+  const clearCat = params.get('clear');
+  const catview = params.get('catview');
+  if (clearCat) { clearCategoryNotif(clearCat); }
+  else if (catview) { activeFilter = catview; activeTab = 'immediat'; }
+  if (clearCat || catview) history.replaceState({}, '', location.pathname);
+})();
 
 render();
 </script>
