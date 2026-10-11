@@ -17,6 +17,12 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){ --bg:#1C1B18; --fg:#F2EFE8; --muted:#A39D8E; --card:#262420; --line:#3A362F; }}
 :root[data-theme="dark"]{ --bg:#1C1B18; --fg:#F2EFE8; --muted:#A39D8E; --card:#262420; --line:#3A362F; }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) input[type=date]::-webkit-calendar-picker-indicator,
+  :root:not([data-theme="light"]) input[type=time]::-webkit-calendar-picker-indicator{ filter:invert(1); }
+}
+:root[data-theme="dark"] input[type=date]::-webkit-calendar-picker-indicator,
+:root[data-theme="dark"] input[type=time]::-webkit-calendar-picker-indicator{ filter:invert(1); }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:'Manrope',system-ui,sans-serif}
@@ -510,20 +516,25 @@ function itemBucket(item){
   return item.mode;
 }
 
-let swRegistration = null;
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').then(reg => { swRegistration = reg; }).catch(() => {});
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+async function getSWReg(){
+  if (!('serviceWorker' in navigator)) return null;
+  try { return await navigator.serviceWorker.ready; } catch (e) { return null; }
 }
 
 async function sendCategoryNotification(catId){
-  if (!swRegistration || Notification.permission !== 'granted') return;
+  if (Notification.permission !== 'granted') return;
+  const reg = await getSWReg();
+  if (!reg) return;
   const cat = catById(catId);
   const pending = items.filter(i => i.cat === catId && i.pendingNotif && !i.acknowledged);
   if (pending.length === 0) return;
   const titles = pending.map(i => i.titre);
   const body = titles.length === 1 ? titles[0] : titles.map(t => '• ' + t).join('\n');
   try {
-    await swRegistration.showNotification('Mémo — ' + cat.label, {
+    await reg.showNotification('Mémo — ' + cat.label, {
       body,
       tag: 'memo-cat-' + catId,
       requireInteraction: true,
@@ -1291,8 +1302,16 @@ function closeEdit(){
   screenList.classList.remove('hidden');
 }
 
+function resyncCatNotif(catId){
+  if (catId) sendCategoryNotification(catId);
+}
+
 document.getElementById('btnAdd').addEventListener('click', openAdd);
-document.getElementById('btnBack').addEventListener('click', closeEdit);
+document.getElementById('btnBack').addEventListener('click', () => {
+  const cid = pendingCat;
+  closeEdit();
+  resyncCatNotif(cid);
+});
 
 document.getElementById('btnSave').addEventListener('click', () => {
   const titre = inpTitre.value.trim();
@@ -1319,15 +1338,20 @@ document.getElementById('btnSave').addEventListener('click', () => {
   render();
   if (newItem && newItem.mode === 'immediat' && !newItem.planifie) {
     fireImmediate(newItem);
+  } else {
+    resyncCatNotif(cat.id);
   }
 });
 
 btnDelete.addEventListener('click', () => {
   if (!editingId) return;
+  const delItem = items.find(i => i.id === editingId);
+  const delCat = delItem ? delItem.cat : null;
   items = items.filter(i => i.id !== editingId);
   saveItems(items);
   closeEdit();
   render();
+  resyncCatNotif(delCat);
 });
 
 function clearCategoryNotif(catId){
@@ -1340,9 +1364,9 @@ function clearCategoryNotif(catId){
     }
   });
   if (changed) saveItems(items);
-  if (swRegistration) {
-    swRegistration.getNotifications({ tag: 'memo-cat-' + catId }).then(list => list.forEach(n => n.close()));
-  }
+  getSWReg().then(reg => {
+    if (reg) reg.getNotifications({ tag: 'memo-cat-' + catId }).then(list => list.forEach(n => n.close()));
+  });
   render();
 }
 
