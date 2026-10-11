@@ -10,6 +10,7 @@
 <meta name="theme-color" content="#5B5648">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{
   --bg:#FAF9F5; --fg:#1F1D1A; --muted:#8A8477; --card:#FFFFFF; --line:#E6E1D8; --err:#C94A4A;
@@ -67,6 +68,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 .manageRow span{flex:1;font-size:13px}
 .iconBtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px}
 .placeholder{padding:14px;background:var(--card);border:1px dashed var(--line);border-radius:12px;font-size:13px;color:var(--muted);line-height:1.5}
+@keyframes alertPulse{0%,100%{box-shadow:0 -4px 20px rgba(0,0,0,.25), inset 0 0 0 3px var(--alert-color, #C94A4A)}50%{box-shadow:0 -4px 20px rgba(0,0,0,.25), inset 0 0 0 3px transparent}}
 </style>
 </head>
 <body>
@@ -256,8 +258,34 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 </div>
 
+<div id="mapPicker" class="hidden" style="position:fixed;inset:0;z-index:4000;background:#000;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--card);border-bottom:1px solid var(--line)">
+    <button type="button" id="btnMapCancel" class="btn small secondary" style="width:auto;color:var(--fg)">Annuler</button>
+    <div style="font-size:14px;font-weight:700;color:var(--fg)">Choisir l'emplacement</div>
+    <button type="button" id="btnMapValidate" class="btn small" style="width:auto">Valider</button>
+  </div>
+  <div style="flex:1;position:relative">
+    <div id="mapPickerMap" style="position:absolute;inset:0"></div>
+    <div style="position:absolute;top:50%;left:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:3px solid #E04E6B;background:rgba(224,78,107,.25);pointer-events:none;z-index:500"></div>
+  </div>
+  <div style="padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px)) 16px;background:var(--card);border-top:1px solid var(--line);display:flex;align-items:center;gap:10px">
+    <span style="font-size:13px;font-weight:600;color:var(--fg)">Rayon</span>
+    <input type="range" id="mapPickerRadius" min="20" max="1000" step="10" value="150" style="flex:1">
+    <span id="mapPickerRadiusLabel" style="font-size:13px;font-weight:700;width:54px;text-align:right;color:var(--fg)">150 m</span>
+  </div>
+</div>
+
+<div id="alertBar" class="hidden" style="position:fixed;left:0;right:0;bottom:0;z-index:3000;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px)) 16px;background:var(--card);border-top:4px solid var(--alert-color, #C94A4A);display:flex;align-items:center;gap:12px;animation:alertPulse 1s infinite;box-shadow:0 -4px 20px rgba(0,0,0,.25)">
+  <div style="flex:1;min-width:0">
+    <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em">Mémo en attente</div>
+    <div id="alertBarText" style="font-size:14.5px;font-weight:700"></div>
+  </div>
+  <button type="button" id="btnAlertAck" class="btn small" style="width:auto">Acquitter</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-11 18:30';
+const APP_VERSION = '2026-10-11 19:00';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -631,6 +659,42 @@ function fireImmediate(item){
   item.pendingNotif = true;
   saveItems(items);
   sendCategoryNotification(item.cat);
+  updateAlertBar();
+}
+
+let alertAudio = null;
+function startAlertSound(){
+  if (!settings.soundDataUrl || alertAudio) return;
+  alertAudio = new Audio(settings.soundDataUrl);
+  alertAudio.loop = true;
+  alertAudio.play().catch(() => {});
+}
+function stopAlertSound(){
+  if (alertAudio) { alertAudio.pause(); alertAudio = null; }
+}
+
+function updateAlertBar(){
+  const pendingCatIds = [...new Set(items.filter(i => i.pendingNotif && !i.acknowledged).map(i => i.cat))];
+  const bar = document.getElementById('alertBar');
+  if (pendingCatIds.length === 0) {
+    bar.classList.add('hidden');
+    stopAlertSound();
+    return;
+  }
+  bar.style.setProperty('--alert-color', settings.blinkBorderColor || '#C94A4A');
+  document.getElementById('alertBarText').textContent = pendingCatIds.map(id => catById(id).label).join(', ');
+  bar.classList.remove('hidden');
+  startAlertSound();
+}
+
+document.getElementById('btnAlertAck').addEventListener('click', () => {
+  const pendingCatIds = [...new Set(items.filter(i => i.pendingNotif && !i.acknowledged).map(i => i.cat))];
+  pendingCatIds.forEach(catId => clearCategoryNotif(catId));
+});
+
+function resyncAllPendingNotifs(){
+  const pendingCatIds = [...new Set(items.filter(i => i.pendingNotif && !i.acknowledged).map(i => i.cat))];
+  pendingCatIds.forEach(catId => sendCategoryNotification(catId));
 }
 
 function checkDueItems(){
@@ -655,7 +719,7 @@ function checkDueItems(){
 }
 checkDueItems();
 setInterval(checkDueItems, 60000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkDueItems(); updatePermBanner(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkDueItems(); updatePermBanner(); resyncAllPendingNotifs(); } });
 
 function itemPickText(item, cat){
   if (!item.pick) return '';
@@ -1097,6 +1161,19 @@ function openZoneSheet(current, onSave){
     };
     card.appendChild(btnLoc);
 
+    const btnMap = document.createElement('button');
+    btnMap.className = 'btn small secondary'; btnMap.type = 'button'; btnMap.style.color = 'var(--fg)';
+    btnMap.textContent = 'Choisir sur la carte';
+    btnMap.onclick = () => {
+      const lat = parseFloat(latInput.value);
+      const lng = parseFloat(lngInput.value);
+      const radius = parseInt(radInput.value, 10) || 150;
+      const startPoint = (!isNaN(lat) && !isNaN(lng)) ? { lat, lng, radius } : null;
+      close();
+      openMapPicker(startPoint, (zone) => { onSave(zone); });
+    };
+    card.appendChild(btnMap);
+
     const radRow = document.createElement('div');
     radRow.style.cssText = 'display:flex;align-items:center;gap:10px;margin-top:4px';
     const radLabel = document.createElement('span');
@@ -1135,6 +1212,62 @@ function openZoneSheet(current, onSave){
   });
 }
 
+let mapPickerInstance = null;
+let mapPickerCircle = null;
+let mapPickerResolve = null;
+
+function openMapPicker(current, onPick){
+  if (typeof L === 'undefined') { toast('Diagnostic: carte indisponible (librairie non chargée — vérifie ta connexion)'); return; }
+  mapPickerResolve = onPick;
+  const startLat = (current && current.lat != null) ? current.lat : 48.8566;
+  const startLng = (current && current.lng != null) ? current.lng : 2.3522;
+  const startRadius = (current && current.radius) || 150;
+  document.getElementById('mapPickerRadius').value = startRadius;
+  document.getElementById('mapPickerRadiusLabel').textContent = startRadius + ' m';
+  document.getElementById('mapPicker').classList.remove('hidden');
+  setTimeout(() => {
+    if (mapPickerInstance) { mapPickerInstance.remove(); mapPickerInstance = null; }
+    mapPickerInstance = L.map('mapPickerMap', { attributionControl: true }).setView([startLat, startLng], current ? 16 : 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(mapPickerInstance);
+    mapPickerCircle = L.circle([startLat, startLng], { radius: startRadius, color: '#E04E6B', fillColor: '#E04E6B', fillOpacity: 0.15 }).addTo(mapPickerInstance);
+    mapPickerInstance.on('move', () => {
+      if (mapPickerCircle) mapPickerCircle.setLatLng(mapPickerInstance.getCenter());
+    });
+    if (!current && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        if (mapPickerInstance) mapPickerInstance.setView([pos.coords.latitude, pos.coords.longitude], 16);
+      }, () => {}, { timeout: 5000 });
+    }
+  }, 50);
+}
+
+function closeMapPicker(){
+  document.getElementById('mapPicker').classList.add('hidden');
+  if (mapPickerInstance) { mapPickerInstance.remove(); mapPickerInstance = null; }
+  mapPickerCircle = null;
+  mapPickerResolve = null;
+}
+
+document.getElementById('btnMapCancel').addEventListener('click', closeMapPicker);
+
+document.getElementById('mapPickerRadius').addEventListener('input', (e) => {
+  const r = parseInt(e.target.value, 10);
+  document.getElementById('mapPickerRadiusLabel').textContent = r + ' m';
+  if (mapPickerCircle) mapPickerCircle.setRadius(r);
+});
+
+document.getElementById('btnMapValidate').addEventListener('click', () => {
+  if (!mapPickerInstance) { closeMapPicker(); return; }
+  const center = mapPickerInstance.getCenter();
+  const radius = parseInt(document.getElementById('mapPickerRadius').value, 10) || 150;
+  const resolve = mapPickerResolve;
+  closeMapPicker();
+  if (resolve) resolve({ lat: center.lat, lng: center.lng, radius });
+});
+
 function openListSheet(titleText, optionsArr, current, onPick){
   openSheet(titleText, (card, close) => {
     if (optionsArr.length === 0) {
@@ -1156,6 +1289,7 @@ function openListSheet(titleText, optionsArr, current, onPick){
 
 function render(){
   updatePermBanner();
+  updateAlertBar();
   document.getElementById('versionInfoMain').textContent = 'v' + APP_VERSION;
   if (searchActive) { renderSearchResults(); return; }
   renderTabs();
