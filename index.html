@@ -285,7 +285,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-11 20:37';
+const APP_VERSION = '2026-10-11 21:15';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -659,7 +659,7 @@ function fireImmediate(item){
   item.pendingNotif = true;
   // Pour les catégories géoloc en mode immédiat : affichage tout de suite (silencieux),
   // l'alarme (son + clignotement) ne se déclenche qu'à l'entrée réelle dans la zone.
-  if (cat.trigger === 'geoloc') item.alertSeen = true;
+  if (cat.trigger !== 'none') item.alertSeen = true;
   saveItems(items);
   sendCategoryNotification(item.cat);
   updateAlertBar();
@@ -734,6 +734,32 @@ function onGeoPosition(pos){
     if (known && inside && !wasInside) onZoneEnter(catId, pick);
     if (known && !inside && wasInside) onZoneExit(catId, pick);
   });
+}
+
+// --- Détection de mise en charge (API batterie, appli ouverte uniquement) ---
+let chargeWatchStarted = false;
+let chargeStateKnown = false;
+let chargeWasCharging = false;
+
+async function startChargeWatch(){
+  if (chargeWatchStarted) return;
+  if (!navigator.getBattery) { chargeWatchStarted = true; toast('Diagnostic: API batterie indisponible, détection de charge impossible'); return; }
+  chargeWatchStarted = true;
+  try {
+    const battery = await navigator.getBattery();
+    const handle = () => {
+      const charging = !!battery.charging;
+      // Premier relevé : on mémorise l'état sans déclencher.
+      if (chargeStateKnown && charging && !chargeWasCharging) onZoneEnter('charge', null);
+      if (chargeStateKnown && !charging && chargeWasCharging) onZoneExit('charge', null);
+      chargeWasCharging = charging;
+      chargeStateKnown = true;
+    };
+    battery.addEventListener('chargingchange', handle);
+    handle();
+  } catch (e) {
+    toast('Diagnostic: erreur API batterie — ' + e.message);
+  }
 }
 
 function startGeoWatch(){
@@ -817,6 +843,7 @@ function checkDueItems(){
 checkDueItems();
 setInterval(checkDueItems, 60000);
 startGeoWatch();
+startChargeWatch();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkDueItems(); updatePermBanner(); resyncAllPendingNotifs(); startGeoWatch(); } });
 
 function itemPickText(item, cat){
