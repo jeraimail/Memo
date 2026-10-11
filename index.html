@@ -285,7 +285,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-11 19:00';
+const APP_VERSION = '2026-10-11 18:49';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -657,24 +657,101 @@ function fireImmediate(item){
     return;
   }
   item.pendingNotif = true;
+  // Pour les catégories géoloc en mode immédiat : affichage tout de suite (silencieux),
+  // l'alarme (son + clignotement) ne se déclenche qu'à l'entrée réelle dans la zone.
+  if (cat.trigger === 'geoloc') item.alertSeen = true;
   saveItems(items);
   sendCategoryNotification(item.cat);
   updateAlertBar();
 }
 
+// --- Détection d'entrée en zone (géolocalisation) ---
+let geoWatchId = null;
+const zoneInsideState = {};
+
+function haversineMeters(lat1, lng1, lat2, lng2){
+  const R = 6371000;
+  const toRad = (d) => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function allZones(){
+  const list = [];
+  if (settings.zones.boulot) list.push({ key: 'boulot', catId: 'boulot', pick: null, zone: settings.zones.boulot });
+  if (settings.zones.maison) list.push({ key: 'maison', catId: 'maison', pick: null, zone: settings.zones.maison });
+  Object.keys(settings.zones.extra || {}).forEach((name) => {
+    list.push({ key: 'extra:' + name, catId: 'extra', pick: name, zone: settings.zones.extra[name] });
+  });
+  return list;
+}
+
+function onZoneEnter(catId, pick){
+  const matching = items.filter(i =>
+    i.cat === catId && !i.acknowledged && (pick ? i.pick === pick : true) &&
+    (i.mode === 'immediat' || i.mode === 'differe')
+  );
+  if (matching.length === 0) return;
+  let changed = false;
+  matching.forEach(item => {
+    if (item.mode === 'differe') {
+      item.pendingNotif = true;
+      sendCategoryNotification(item.cat);
+    }
+    // Entrée en zone = (ré)armement de l'alarme, même si elle avait déjà été acquittée avant.
+    item.alertSeen = false;
+    changed = true;
+  });
+  if (changed) saveItems(items);
+  updateAlertBar();
+  render();
+}
+
+function onGeoPosition(pos){
+  const { latitude, longitude } = pos.coords;
+  allZones().forEach(({ key, catId, pick, zone }) => {
+    const dist = haversineMeters(latitude, longitude, zone.lat, zone.lng);
+    const inside = dist <= zone.radius;
+    const wasInside = !!zoneInsideState[key];
+    zoneInsideState[key] = inside;
+    if (inside && !wasInside) onZoneEnter(catId, pick);
+  });
+}
+
+function startGeoWatch(){
+  if (!('geolocation' in navigator) || geoWatchId !== null) return;
+  geoWatchId = navigator.geolocation.watchPosition(onGeoPosition, () => {}, {
+    enableHighAccuracy: true, maximumAge: 15000, timeout: 20000,
+  });
+}
+
 let alertAudio = null;
-function startAlertSound(){
-  if (!settings.soundDataUrl || alertAudio) return;
+let alertSoundInterval = null;
+const ALERT_SOUND_REPEAT_MS = 30000;
+
+function playAlertSoundOnce(){
+  if (!settings.soundDataUrl) return;
   alertAudio = new Audio(settings.soundDataUrl);
-  alertAudio.loop = true;
   alertAudio.play().catch(() => {});
 }
+function startAlertSound(){
+  if (alertSoundInterval) return;
+  playAlertSoundOnce();
+  alertSoundInterval = setInterval(playAlertSoundOnce, ALERT_SOUND_REPEAT_MS);
+}
 function stopAlertSound(){
+  if (alertSoundInterval) { clearInterval(alertSoundInterval); alertSoundInterval = null; }
   if (alertAudio) { alertAudio.pause(); alertAudio = null; }
 }
 
+function unseenAlertItems(){
+  return items.filter(i => i.pendingNotif && !i.acknowledged && !i.alertSeen);
+}
+
 function updateAlertBar(){
-  const pendingCatIds = [...new Set(items.filter(i => i.pendingNotif && !i.acknowledged).map(i => i.cat))];
+  const pendingCatIds = [...new Set(unseenAlertItems().map(i => i.cat))];
   const bar = document.getElementById('alertBar');
   if (pendingCatIds.length === 0) {
     bar.classList.add('hidden');
@@ -688,8 +765,12 @@ function updateAlertBar(){
 }
 
 document.getElementById('btnAlertAck').addEventListener('click', () => {
-  const pendingCatIds = [...new Set(items.filter(i => i.pendingNotif && !i.acknowledged).map(i => i.cat))];
-  pendingCatIds.forEach(catId => clearCategoryNotif(catId));
+  // "Acquitter" ne traite pas le mémo : ça arrête juste l'alarme (son + clignotement).
+  // Le mémo reste en attente dans l'appli et dans la notification système tant qu'on n'a pas cliqué "Effacer".
+  let changed = false;
+  unseenAlertItems().forEach(i => { i.alertSeen = true; changed = true; });
+  if (changed) saveItems(items);
+  updateAlertBar();
 });
 
 function resyncAllPendingNotifs(){
@@ -719,7 +800,8 @@ function checkDueItems(){
 }
 checkDueItems();
 setInterval(checkDueItems, 60000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkDueItems(); updatePermBanner(); resyncAllPendingNotifs(); } });
+startGeoWatch();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkDueItems(); updatePermBanner(); resyncAllPendingNotifs(); startGeoWatch(); } });
 
 function itemPickText(item, cat){
   if (!item.pick) return '';
