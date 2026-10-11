@@ -524,13 +524,22 @@ async function getSWReg(){
   try { return await navigator.serviceWorker.ready; } catch (e) { return null; }
 }
 
+function toast(msg){
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:12px 16px;border-radius:12px;font-size:13px;font-weight:600;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,.3)';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4500);
+}
+
 async function sendCategoryNotification(catId){
-  if (Notification.permission !== 'granted') return;
+  if (!('Notification' in window)) { toast('Diagnostic: API Notification absente'); return; }
+  if (Notification.permission !== 'granted') { toast('Diagnostic: permission = ' + Notification.permission); return; }
   const reg = await getSWReg();
-  if (!reg) return;
+  if (!reg) { toast('Diagnostic: Service Worker non prêt'); return; }
   const cat = catById(catId);
   const pending = items.filter(i => i.cat === catId && i.pendingNotif && !i.acknowledged);
-  if (pending.length === 0) return;
+  if (pending.length === 0) { toast('Diagnostic: aucun mémo en attente pour ' + cat.label); return; }
   const titles = pending.map(i => i.titre);
   const body = titles.length === 1 ? titles[0] : titles.map(t => '• ' + t).join('\n');
   try {
@@ -547,7 +556,7 @@ async function sendCategoryNotification(catId){
         { action: 'clear', title: 'Effacer' },
       ],
     });
-  } catch (e) { /* notification indisponible */ }
+  } catch (e) { toast('Diagnostic: erreur showNotification — ' + e.message); }
 }
 
 function fireImmediate(item){
@@ -608,6 +617,52 @@ function appendRows(container, itemsArr){
   });
 }
 
+function openGroupSheet(cat, itemsArr){
+  openSheet(cat.label + ' (' + itemsArr.length + ')', (card, close) => {
+    const list = document.createElement('div');
+    list.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+    function renderRows(){
+      list.innerHTML = '';
+      if (itemsArr.length === 0) { close(); render(); return; }
+      itemsArr.forEach(item => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:6px;align-items:center';
+        const inp = document.createElement('input');
+        inp.className = 'text'; inp.value = item.titre; inp.style.flex = '1';
+        inp.addEventListener('blur', () => {
+          const v = inp.value.trim();
+          if (v && v !== item.titre) {
+            item.titre = v;
+            saveItems(items);
+            render();
+            resyncCatNotif(item.cat);
+          }
+        });
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
+        const editBtn = document.createElement('button');
+        editBtn.className = 'iconBtn'; editBtn.type = 'button'; editBtn.title = 'Édition complète';
+        editBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+        editBtn.onclick = () => { close(); openEdit(item.id); };
+        const del = document.createElement('button');
+        del.className = 'iconBtn'; del.type = 'button'; del.textContent = '×'; del.title = 'Supprimer';
+        del.onclick = () => {
+          items = items.filter(i => i.id !== item.id);
+          saveItems(items);
+          const idx = itemsArr.indexOf(item);
+          if (idx >= 0) itemsArr.splice(idx, 1);
+          render();
+          resyncCatNotif(cat.id);
+          renderRows();
+        };
+        row.appendChild(inp); row.appendChild(editBtn); row.appendChild(del);
+        list.appendChild(row);
+      });
+    }
+    renderRows();
+    card.appendChild(list);
+  });
+}
+
 function makeGroupCard(cat, itemsArr, showHeader){
   const wrap = document.createElement('div');
   wrap.className = 'groupCard';
@@ -615,11 +670,13 @@ function makeGroupCard(cat, itemsArr, showHeader){
   if (showHeader) {
     const header = document.createElement('div');
     header.className = 'groupHeader';
+    header.style.cursor = 'pointer';
     header.innerHTML = `
       <span style="width:9px;height:9px;border-radius:50%;background:${catColor(cat.id)};flex-shrink:0"></span>
       <span style="font-size:12.5px;font-weight:700;flex:1">${cat.label}</span>
-      <span style="font-size:11px;color:var(--muted);font-weight:700">${itemsArr.length}</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:700">${itemsArr.length} · gérer</span>
     `;
+    if (itemsArr.length > 1) header.onclick = () => openGroupSheet(cat, itemsArr);
     wrap.appendChild(header);
   }
   appendRows(wrap, itemsArr);
