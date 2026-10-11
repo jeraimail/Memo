@@ -90,6 +90,10 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
     <div id="searchBar" class="hidden" style="padding:0 20px 14px 20px">
       <input class="text" id="inpSearch" type="text" placeholder="Rechercher un mémo…">
     </div>
+    <div id="permBanner" class="hidden" style="margin:0 20px 14px 20px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;gap:10px">
+      <span style="flex:1;font-size:12.5px;color:var(--muted);line-height:1.4">Les notifications sont désactivées — les mémos ne pourront pas s'afficher.</span>
+      <button class="btn small" id="btnEnableNotif" type="button" style="width:auto">Activer</button>
+    </div>
     <div class="tabs" id="tabs"></div>
     <div id="filters" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(40px,1fr));gap:8px;padding:12px 20px 16px 20px"></div>
     <div id="list" style="flex:1;overflow-y:auto;padding:0 20px 20px 20px;display:flex;flex-direction:column;gap:10px"></div>
@@ -474,6 +478,28 @@ const audioPreview = document.getElementById('audioPreview');
 const archiveList = document.getElementById('archiveList');
 const searchBar = document.getElementById('searchBar');
 const inpSearch = document.getElementById('inpSearch');
+const permBanner = document.getElementById('permBanner');
+const btnEnableNotif = document.getElementById('btnEnableNotif');
+
+function updatePermBanner(){
+  const granted = ('Notification' in window) && Notification.permission === 'granted';
+  permBanner.classList.toggle('hidden', granted);
+}
+
+btnEnableNotif.addEventListener('click', async () => {
+  if (!('Notification' in window)) { toast('API Notification indisponible sur ce navigateur'); return; }
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      toast('Notifications activées');
+    } else {
+      toast('Permission ' + perm + ' — va dans les réglages du site Chrome pour l\'autoriser manuellement si besoin');
+    }
+  } catch (e) {
+    toast('Erreur: ' + e.message);
+  }
+  updatePermBanner();
+});
 
 function renderTabs(){
   tabsEl.innerHTML = '';
@@ -587,7 +613,7 @@ function checkDueItems(){
 }
 checkDueItems();
 setInterval(checkDueItems, 60000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDueItems(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkDueItems(); updatePermBanner(); } });
 
 function itemPickText(item, cat){
   if (!item.pick) return '';
@@ -982,6 +1008,7 @@ function openListSheet(titleText, optionsArr, current, onPick){
 }
 
 function render(){
+  updatePermBanner();
   if (searchActive) { renderSearchResults(); return; }
   renderTabs();
   if (!catById(activeFilter) && activeFilter !== 'all') activeFilter = 'all';
