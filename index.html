@@ -30,9 +30,9 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:'Manrope',system-
 #app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
 .chip{font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;white-space:nowrap;border:1px solid var(--line);color:var(--muted);background:var(--card);cursor:pointer}
 .chip.active{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-.iconChip{width:100%;aspect-ratio:1;max-height:44px;border-radius:12px;border:1px solid var(--line);color:var(--muted);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.iconChip{width:100%;aspect-ratio:1;max-height:48px;border-radius:12px;border:1px solid var(--line);color:var(--muted);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .iconChip.active{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-.iconChip svg{height:17px;width:auto;max-width:85%}
+.iconChip svg{height:24px;width:auto;max-width:92%}
 .tabs{display:flex;border-bottom:1px solid var(--line);padding:0 20px}
 .tab{flex:1;text-align:center;padding:12px 0;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
 .tab.active{color:var(--fg);border-bottom-color:var(--fg)}
@@ -296,7 +296,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-11 21:27';
+const APP_VERSION = '2026-10-11 21:37';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -630,25 +630,44 @@ async function sendCategoryNotification(catId){
   if (!reg) { toast('Diagnostic: Service Worker non prêt'); return; }
   const cat = catById(catId);
   const pending = items.filter(i => i.cat === catId && i.pendingNotif && !i.acknowledged);
-  if (pending.length === 0) { toast('Diagnostic: aucun mémo en attente pour ' + cat.label); return; }
-  const titles = pending.map(i => i.titre);
-  const body = titles.length === 1 ? titles[0] : titles.map(t => '• ' + t).join('\n');
-  const title = catId === 'memo' ? 'Mémo' : 'Mémo ' + cat.label;
+  // Une notification par groupe : catégorie seule, ou catégorie + appareil/lieu pour Extra et Bluetooth/Wifi.
+  const groups = {};
+  pending.forEach(i => { (groups[itemGroupKey(i)] = groups[itemGroupKey(i)] || []).push(i); });
+  // Ferme les notifications de cette catégorie qui n'ont plus de mémo en attente.
   try {
-    await reg.showNotification(title, {
-      body,
-      tag: 'memo-cat-' + catId,
-      requireInteraction: true,
-      renotify: true,
-      icon: TRANSPARENT_PIXEL,
-      badge: './icon-badge.png',
-      data: { catId, itemIds: pending.map(i => i.id) },
-      actions: [
-        { action: 'edit', title: 'Modifier' },
-        { action: 'clear', title: 'Effacer' },
-      ],
+    const existing = await reg.getNotifications();
+    existing.forEach(n => {
+      if (n.data && n.data.catId === catId && !(n.data.groupKey in groups)) n.close();
     });
-  } catch (e) { toast('Diagnostic: erreur showNotification — ' + e.message); }
+  } catch (e) {}
+  for (const groupKey of Object.keys(groups)) {
+    const group = groups[groupKey];
+    const titles = group.map(i => i.titre);
+    const body = titles.length === 1 ? titles[0] : titles.map(t => '• ' + t).join('\n');
+    let title = catId === 'memo' ? 'Mémo' : 'Mémo ' + cat.label;
+    if (groupKey) title += ' ' + group[0].pick;
+    try {
+      await reg.showNotification(title, {
+        body,
+        tag: 'memo-cat-' + catId + '|' + groupKey,
+        requireInteraction: true,
+        renotify: true,
+        icon: TRANSPARENT_PIXEL,
+        badge: './icon-badge.png',
+        data: { catId, groupKey, itemIds: group.map(i => i.id) },
+        actions: [
+          { action: 'edit', title: 'Modifier' },
+          { action: 'clear', title: 'Effacer' },
+        ],
+      });
+    } catch (e) { toast('Diagnostic: erreur showNotification — ' + e.message); }
+  }
+}
+
+function itemGroupKey(item){
+  const cat = catById(item.cat);
+  if (!(cat.listKey || cat.connTypes) || !item.pick) return '';
+  return (item.connType || '') + '|' + item.pick;
 }
 
 function sendMemoEmail(item){
@@ -814,7 +833,7 @@ function updateAlertBar(){
     return;
   }
   bar.style.setProperty('--alert-color', settings.blinkBorderColor || '#C94A4A');
-  document.getElementById('alertBarText').textContent = pendingCatIds.map(id => catById(id).label).join(', ');
+  document.getElementById('alertBarText').textContent = unseenAlertItems().map(i => i.titre).join(' · ');
   bar.classList.remove('hidden');
   startAlertSound();
 }
@@ -1939,20 +1958,19 @@ btnDelete.addEventListener('click', () => {
   resyncCatNotif(delCat);
 });
 
-function clearCategoryNotif(catId){
+function clearCategoryNotif(catId, itemIds){
   let changed = false;
   items.forEach(i => {
-    if (i.cat === catId && i.pendingNotif && !i.acknowledged) {
+    if (i.cat === catId && i.pendingNotif && !i.acknowledged && (!itemIds || itemIds.includes(i.id))) {
       i.acknowledged = true;
       i.acknowledgedAt = Date.now();
       changed = true;
     }
   });
   if (changed) saveItems(items);
-  getSWReg().then(reg => {
-    if (reg) reg.getNotifications({ tag: 'memo-cat-' + catId }).then(list => list.forEach(n => n.close()));
-  });
   render();
+  // Ferme les notifications sans mémo restant, et met à jour celles du reste de la catégorie.
+  sendCategoryNotification(catId);
 }
 
 function goToCatView(catId, itemIds){
@@ -1972,7 +1990,7 @@ function goToCatView(catId, itemIds){
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'memo-clear') clearCategoryNotif(event.data.catId);
+    if (event.data && event.data.type === 'memo-clear') clearCategoryNotif(event.data.catId, event.data.itemIds);
     if (event.data && event.data.type === 'memo-catview') goToCatView(event.data.catId, event.data.itemIds);
   });
 }
@@ -1982,7 +2000,7 @@ if ('serviceWorker' in navigator) {
   const clearCat = params.get('clear');
   const catview = params.get('catview');
   const itemParam = params.get('item');
-  if (clearCat) { clearCategoryNotif(clearCat); }
+  if (clearCat) { clearCategoryNotif(clearCat, params.get('ids') ? params.get('ids').split(',') : null); }
   else if (catview) { goToCatView(catview, itemParam ? [itemParam] : null); }
   if (clearCat || catview) history.replaceState({}, '', location.pathname);
 })();

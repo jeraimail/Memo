@@ -1,4 +1,4 @@
-// SW_VERSION: 2026-10-11 18:10
+// SW_VERSION: 2026-10-11 21:37
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -17,10 +17,10 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil((async () => {
       const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       if (allClients.length > 0) {
-        allClients.forEach(c => c.postMessage({ type: 'memo-clear', catId: data.catId }));
+        allClients.forEach(c => c.postMessage({ type: 'memo-clear', catId: data.catId, itemIds: data.itemIds || null }));
         allClients[0].focus();
       } else {
-        await self.clients.openWindow('./?clear=' + encodeURIComponent(data.catId || ''));
+        await self.clients.openWindow('./?clear=' + encodeURIComponent(data.catId || '') + (data.itemIds && data.itemIds.length ? '&ids=' + encodeURIComponent(data.itemIds.join(',')) : ''));
       }
     })());
     return;
