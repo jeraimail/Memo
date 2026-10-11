@@ -558,6 +558,30 @@ function toast(msg){
   setTimeout(() => t.remove(), 4500);
 }
 
+const _catIconCache = {};
+function getCatIconDataUrl(catId){
+  const color = catColor(catId);
+  const key = catId + '|' + color;
+  if (_catIconCache[key]) return _catIconCache[key];
+  const size = 192;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold ' + Math.floor(size * 0.42) + 'px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const letter = (catById(catId).label || '?').charAt(0).toUpperCase();
+  ctx.fillText(letter, size / 2, size / 2 + size * 0.03);
+  const url = canvas.toDataURL('image/png');
+  _catIconCache[key] = url;
+  return url;
+}
+
 async function sendCategoryNotification(catId){
   if (!('Notification' in window)) { toast('Diagnostic: API Notification absente'); return; }
   if (Notification.permission !== 'granted') { toast('Diagnostic: permission = ' + Notification.permission); return; }
@@ -568,13 +592,14 @@ async function sendCategoryNotification(catId){
   if (pending.length === 0) { toast('Diagnostic: aucun mémo en attente pour ' + cat.label); return; }
   const titles = pending.map(i => i.titre);
   const body = titles.length === 1 ? titles[0] : titles.map(t => '• ' + t).join('\n');
+  const title = catId === 'memo' ? 'Mémo' : 'Mémo ' + cat.label;
   try {
-    await reg.showNotification('Mémo — ' + cat.label, {
+    await reg.showNotification(title, {
       body,
       tag: 'memo-cat-' + catId,
       requireInteraction: true,
       renotify: true,
-      icon: './icon-192.png',
+      icon: getCatIconDataUrl(catId),
       badge: './icon-badge.png',
       data: { catId, itemIds: pending.map(i => i.id) },
       actions: [
