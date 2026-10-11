@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mémo</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#5B5648">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -524,7 +528,9 @@ async function sendCategoryNotification(catId){
       tag: 'memo-cat-' + catId,
       requireInteraction: true,
       renotify: true,
-      data: { catId },
+      icon: './icon-192.png',
+      badge: './icon-badge.png',
+      data: { catId, itemIds: pending.map(i => i.id) },
       actions: [
         { action: 'edit', title: 'Modifier' },
         { action: 'clear', title: 'Effacer' },
@@ -1340,12 +1346,17 @@ function clearCategoryNotif(catId){
   render();
 }
 
-function goToCatView(catId){
+function goToCatView(catId, itemIds){
+  screenSettings.classList.add('hidden');
+  screenArchive.classList.add('hidden');
+  if (itemIds && itemIds.length === 1 && items.find(i => i.id === itemIds[0])) {
+    screenList.classList.remove('hidden');
+    openEdit(itemIds[0]);
+    return;
+  }
   activeTab = 'immediat';
   activeFilter = catId;
   screenEdit.classList.add('hidden');
-  screenSettings.classList.add('hidden');
-  screenArchive.classList.add('hidden');
   screenList.classList.remove('hidden');
   render();
 }
@@ -1353,7 +1364,7 @@ function goToCatView(catId){
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'memo-clear') clearCategoryNotif(event.data.catId);
-    if (event.data && event.data.type === 'memo-catview') goToCatView(event.data.catId);
+    if (event.data && event.data.type === 'memo-catview') goToCatView(event.data.catId, event.data.itemIds);
   });
 }
 
@@ -1361,8 +1372,9 @@ if ('serviceWorker' in navigator) {
   const params = new URLSearchParams(location.search);
   const clearCat = params.get('clear');
   const catview = params.get('catview');
+  const itemParam = params.get('item');
   if (clearCat) { clearCategoryNotif(clearCat); }
-  else if (catview) { activeFilter = catview; activeTab = 'immediat'; }
+  else if (catview) { goToCatView(catview, itemParam ? [itemParam] : null); }
   if (clearCat || catview) history.replaceState({}, '', location.pathname);
 })();
 
