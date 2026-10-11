@@ -296,7 +296,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-11 21:46';
+const APP_VERSION = '2026-10-11 21:50';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -623,7 +623,10 @@ function toast(msg){
   setTimeout(() => t.remove(), 4500);
 }
 
-async function sendCategoryNotification(catId){
+// opts.groupKeys : ne (re)publie que ces groupes (les autres notifications restent telles quelles)
+// opts.renotify  : false pour mettre à jour sans réalerter (par défaut : true)
+async function sendCategoryNotification(catId, opts){
+  opts = opts || {};
   if (!('Notification' in window)) { toast('Diagnostic: API Notification absente'); return; }
   if (Notification.permission !== 'granted') { toast('Diagnostic: permission = ' + Notification.permission); return; }
   const reg = await getSWReg();
@@ -641,6 +644,7 @@ async function sendCategoryNotification(catId){
     });
   } catch (e) {}
   for (const groupKey of Object.keys(groups)) {
+    if (opts.groupKeys && !opts.groupKeys.includes(groupKey)) continue;
     const group = groups[groupKey];
     const titles = group.map(i => i.titre);
     const body = titles.length === 1 ? titles[0] : titles.map(t => '• ' + t).join('\n');
@@ -651,7 +655,7 @@ async function sendCategoryNotification(catId){
         body,
         tag: 'memo-cat-' + catId + '|' + groupKey,
         requireInteraction: true,
-        renotify: true,
+        renotify: opts.renotify !== false,
         icon: TRANSPARENT_PIXEL,
         badge: './icon-badge.png',
         data: { catId, groupKey, itemIds: group.map(i => i.id) },
@@ -691,7 +695,7 @@ function fireImmediate(item){
   // l'alarme (son + clignotement) ne se déclenche qu'à l'entrée réelle dans la zone.
   if (cat.trigger !== 'none') item.alertSeen = true;
   saveItems(items);
-  sendCategoryNotification(item.cat);
+  sendCategoryNotification(item.cat, { groupKeys: [itemGroupKey(item)] });
   updateAlertBar();
 }
 
@@ -727,16 +731,18 @@ function onZoneEnter(catId, pick, connType){
   );
   if (matching.length === 0) return;
   let changed = false;
+  const notifGroups = [];
   matching.forEach(item => {
     if (item.mode === 'differe') {
       item.pendingNotif = true;
-      sendCategoryNotification(item.cat);
+      notifGroups.push(itemGroupKey(item));
     }
     // Entrée en zone = (ré)armement de l'alarme, même si elle avait déjà été acquittée avant.
     item.alertSeen = false;
     changed = true;
   });
   if (changed) saveItems(items);
+  if (notifGroups.length) sendCategoryNotification(catId, { groupKeys: notifGroups });
   updateAlertBar();
   render();
 }
@@ -862,7 +868,7 @@ document.getElementById('btnAlertAck').addEventListener('click', () => {
 
 function resyncAllPendingNotifs(){
   const pendingCatIds = [...new Set(items.filter(i => i.pendingNotif && !i.acknowledged).map(i => i.cat))];
-  pendingCatIds.forEach(catId => sendCategoryNotification(catId));
+  pendingCatIds.forEach(catId => sendCategoryNotification(catId, { renotify: false }));
 }
 
 function checkDueItems(){
@@ -1918,7 +1924,7 @@ function closeEdit(){
 }
 
 function resyncCatNotif(catId){
-  if (catId) sendCategoryNotification(catId);
+  if (catId) sendCategoryNotification(catId, { renotify: false });
 }
 
 document.getElementById('btnAdd').addEventListener('click', openAdd);
@@ -1980,8 +1986,8 @@ function clearCategoryNotif(catId, itemIds){
   });
   if (changed) saveItems(items);
   render();
-  // Ferme les notifications sans mémo restant, et met à jour celles du reste de la catégorie.
-  sendCategoryNotification(catId);
+  // Ferme les notifications sans mémo restant, et met à jour celles du reste de la catégorie (sans réalerter).
+  sendCategoryNotification(catId, { renotify: false });
 }
 
 function goToCatView(catId, itemIds){
