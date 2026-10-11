@@ -225,6 +225,12 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
         </div>
         <input type="file" id="inpSoundFile" accept="audio/*" class="hidden">
         <audio id="audioPreview"></audio>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+          <span style="font-size:13px;font-weight:600">Volume</span>
+          <input type="range" id="inpAlarmVolume" min="0" max="100" step="5" value="100" style="flex:1">
+          <span id="alarmVolumeLabel" style="font-size:13px;font-weight:700;width:44px;text-align:right">100%</span>
+        </div>
+        <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0 0;line-height:1.4">Sur le web, ce volume s'applique en proportion du volume du téléphone et ne peut pas le dépasser. Forcer le volume système (même au minimum) ne sera possible qu'en version native.</p>
       </div>
       <div>
         <label class="field">Couleurs des catégories</label>
@@ -235,6 +241,11 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
         <label class="field">Zones de géolocalisation</label>
         <p style="font-size:12px;color:var(--muted);margin:0 0 10px 0;line-height:1.4">Zone qui déclenche les mémos Boulot et Maison. Les lieux de la catégorie Extra se gèrent depuis leur liste (📍 lors de la création/modif d'un mémo Extra).</p>
         <div id="implicitZoneList" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+      <div>
+        <label class="field">Simulation Bluetooth / Wifi</label>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 10px 0;line-height:1.4">Le web ne peut pas détecter ces connexions. Utilise ces boutons pour simuler la connexion ou la déconnexion d'un appareil de tes listes et tester les mémos de la catégorie Bluetooth / Wifi.</p>
+        <div id="simConnList" style="display:flex;flex-direction:column;gap:10px"></div>
       </div>
       <div>
         <label class="field">Couleurs des clignotements</label>
@@ -285,7 +296,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-11 21:15';
+const APP_VERSION = '2026-10-11 21:27';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -427,7 +438,7 @@ const STORAGE_KEY = 'memo_items_v1';
 const LISTS_KEY = 'memo_lists_v1';
 const SETTINGS_KEY = 'memo_settings_v1';
 function loadSettings(){
-  const def = { colors:{}, soundDataUrl:null, soundName:null, blinkBorderColor:'#C94A4A', blinkCameraColor:'#4A6FA5', zones:{ boulot:null, maison:null, extra:{} } };
+  const def = { colors:{}, soundDataUrl:null, soundName:null, blinkBorderColor:'#C94A4A', blinkCameraColor:'#4A6FA5', alarmVolume:100, zones:{ boulot:null, maison:null, extra:{} } };
   try {
     const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
     const merged = Object.assign(def, stored);
@@ -688,9 +699,10 @@ function allZones(){
   return list;
 }
 
-function onZoneEnter(catId, pick){
+function onZoneEnter(catId, pick, connType){
   const matching = items.filter(i =>
     i.cat === catId && !i.acknowledged && (pick ? i.pick === pick : true) &&
+    (!connType || i.connType === connType) &&
     (i.mode === 'immediat' || i.mode === 'differe')
   );
   if (matching.length === 0) return;
@@ -710,10 +722,10 @@ function onZoneEnter(catId, pick){
 }
 
 // Sortie de zone = acquittement automatique de l'alarme (le mémo reste en attente, il n'est pas "traité").
-function onZoneExit(catId, pick){
+function onZoneExit(catId, pick, connType){
   let changed = false;
   items.forEach(i => {
-    if (i.cat === catId && i.pendingNotif && !i.acknowledged && !i.alertSeen && (pick ? i.pick === pick : true)) {
+    if (i.cat === catId && i.pendingNotif && !i.acknowledged && !i.alertSeen && (pick ? i.pick === pick : true) && (!connType || i.connType === connType)) {
       i.alertSeen = true;
       changed = true;
     }
@@ -776,6 +788,7 @@ const ALERT_SOUND_REPEAT_MS = 30000;
 function playAlertSoundOnce(){
   if (!settings.soundDataUrl) return;
   alertAudio = new Audio(settings.soundDataUrl);
+  alertAudio.volume = Math.max(0, Math.min(1, (settings.alarmVolume == null ? 100 : settings.alarmVolume) / 100));
   alertAudio.play().catch(() => {});
 }
 function startAlertSound(){
@@ -1014,9 +1027,14 @@ function renderList(){
   });
 }
 
+const simConnState = {};
+
 function renderSettings(){
   document.getElementById('versionInfo').textContent = 'Version ' + APP_VERSION;
   soundNameEl.textContent = settings.soundName || 'Son par défaut';
+  const vol = settings.alarmVolume == null ? 100 : settings.alarmVolume;
+  document.getElementById('inpAlarmVolume').value = vol;
+  document.getElementById('alarmVolumeLabel').textContent = vol + '%';
   colorList.innerHTML = '';
   CATEGORIES.forEach(cat => {
     const row = document.createElement('div');
@@ -1062,6 +1080,39 @@ function renderSettings(){
     implicitZoneList.appendChild(row);
   });
 
+  const simConnList = document.getElementById('simConnList');
+  simConnList.innerHTML = '';
+  const simDevices = [];
+  CATEGORIES.find(c => c.id === 'voiture').connTypes.forEach(ct => {
+    (lists['voiture_' + ct.id] || []).forEach(name => simDevices.push({ connType: ct.id, label: ct.label, name }));
+  });
+  if (simDevices.length === 0) {
+    const p = document.createElement('div');
+    p.style.cssText = 'font-size:12px;color:var(--muted)';
+    p.textContent = 'Aucun appareil dans les listes Bluetooth / Wifi. Ajoutes-en en créant un mémo de cette catégorie.';
+    simConnList.appendChild(p);
+  }
+  simDevices.forEach(d => {
+    const key = d.connType + ':' + d.name;
+    const on = !!simConnState[key];
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px';
+    row.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600">${escapeHtml(d.name)}</div>
+        <div style="font-size:12px;color:var(--muted)">${d.label} · ${on ? 'Connecté' : 'Déconnecté'}</div>
+      </div>
+      <button type="button" class="btn small ${on ? 'secondary' : ''}" style="width:auto;${on ? 'color:var(--fg)' : ''}">${on ? 'Déconnecter' : 'Connecter'}</button>
+    `;
+    row.querySelector('button').addEventListener('click', () => {
+      simConnState[key] = !on;
+      if (!on) onZoneEnter('voiture', d.name, d.connType);
+      else onZoneExit('voiture', d.name, d.connType);
+      renderSettings();
+    });
+    simConnList.appendChild(row);
+  });
+
   const blinkList = document.getElementById('blinkColorList');
   blinkList.innerHTML = '';
   [
@@ -1101,7 +1152,13 @@ inpSoundFile.addEventListener('change', () => {
 document.getElementById('btnTestSound').addEventListener('click', () => {
   if (!settings.soundDataUrl) return;
   audioPreview.src = settings.soundDataUrl;
+  audioPreview.volume = Math.max(0, Math.min(1, (settings.alarmVolume == null ? 100 : settings.alarmVolume) / 100));
   audioPreview.play().catch(() => {});
+});
+document.getElementById('inpAlarmVolume').addEventListener('input', (e) => {
+  settings.alarmVolume = parseInt(e.target.value, 10);
+  document.getElementById('alarmVolumeLabel').textContent = settings.alarmVolume + '%';
+  saveSettings(settings);
 });
 document.getElementById('btnResetColors').addEventListener('click', () => {
   settings.colors = {};
