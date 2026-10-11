@@ -230,6 +230,11 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
         <div style="margin-top:10px"><button class="linklike" id="btnResetColors" type="button">Réinitialiser les couleurs</button></div>
       </div>
       <div>
+        <label class="field">Zones de géolocalisation</label>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 10px 0;line-height:1.4">Zone qui déclenche les mémos Boulot et Maison. Les lieux de la catégorie Extra se gèrent depuis leur liste (📍 lors de la création/modif d'un mémo Extra).</p>
+        <div id="implicitZoneList" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+      <div>
         <label class="field">Couleurs des clignotements</label>
         <p style="font-size:12px;color:var(--muted);margin:0 0 10px 0;line-height:1.4">Utilisées plus tard pour l'alerte visuelle (bordure d'écran et cercle caméra).</p>
         <div style="display:flex;flex-direction:column;gap:10px" id="blinkColorList"></div>
@@ -252,7 +257,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 </div>
 
 <script>
-const APP_VERSION = '2026-10-11 18:10';
+const APP_VERSION = '2026-10-11 18:30';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -394,8 +399,14 @@ const STORAGE_KEY = 'memo_items_v1';
 const LISTS_KEY = 'memo_lists_v1';
 const SETTINGS_KEY = 'memo_settings_v1';
 function loadSettings(){
-  const def = { colors:{}, soundDataUrl:null, soundName:null, blinkBorderColor:'#C94A4A', blinkCameraColor:'#4A6FA5' };
-  try { return Object.assign(def, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch(e){ return def; }
+  const def = { colors:{}, soundDataUrl:null, soundName:null, blinkBorderColor:'#C94A4A', blinkCameraColor:'#4A6FA5', zones:{ boulot:null, maison:null, extra:{} } };
+  try {
+    const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
+    const merged = Object.assign(def, stored);
+    merged.zones = Object.assign({ boulot:null, maison:null, extra:{} }, stored.zones || {});
+    merged.zones.extra = merged.zones.extra || {};
+    return merged;
+  } catch(e){ return def; }
 }
 function saveSettings(v){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(v)); }
 function catColor(id){ return (settings.colors && settings.colors[id]) || catById(id).color; }
@@ -837,6 +848,31 @@ function renderSettings(){
     colorList.appendChild(row);
   });
 
+  const implicitZoneList = document.getElementById('implicitZoneList');
+  implicitZoneList.innerHTML = '';
+  CATEGORIES.filter(c => c.implicitZone).forEach(cat => {
+    const zone = settings.zones[cat.id];
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px';
+    const status = zone ? `${zone.lat.toFixed(4)}, ${zone.lng.toFixed(4)} · ${zone.radius} m` : 'Non définie';
+    row.innerHTML = `
+      <span style="width:26px;height:26px;border-radius:8px;background:${catColor(cat.id)}1A;color:${catColor(cat.id)};display:flex;align-items:center;justify-content:center;flex-shrink:0">${ICONS[cat.id]}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600">${cat.label}</div>
+        <div style="font-size:12px;color:var(--muted)">${status}</div>
+      </div>
+      <button type="button" class="btn small secondary" style="width:auto;color:var(--fg)">${zone ? 'Modifier' : 'Définir'}</button>
+    `;
+    row.querySelector('button').addEventListener('click', () => {
+      openZoneSheet(zone, (newZone) => {
+        settings.zones[cat.id] = newZone;
+        saveSettings(settings);
+        renderSettings();
+      });
+    });
+    implicitZoneList.appendChild(row);
+  });
+
   const blinkList = document.getElementById('blinkColorList');
   blinkList.innerHTML = '';
   [
@@ -1020,6 +1056,85 @@ function openColorSheet(current, onPick){
   });
 }
 
+function openZoneSheet(current, onSave){
+  openSheet('Zone géographique', (card, close) => {
+    const info = document.createElement('div');
+    info.style.cssText = 'font-size:12.5px;color:var(--muted);line-height:1.4;margin-bottom:4px';
+    info.textContent = 'Centre de la zone et rayon de détection (en mètres).';
+    card.appendChild(info);
+
+    const row1 = document.createElement('div');
+    row1.style.cssText = 'display:flex;gap:8px';
+    const latInput = document.createElement('input');
+    latInput.className = 'text'; latInput.type = 'number'; latInput.step = 'any';
+    latInput.placeholder = 'Latitude'; latInput.value = (current && current.lat != null) ? current.lat : '';
+    latInput.style.flex = '1';
+    const lngInput = document.createElement('input');
+    lngInput.className = 'text'; lngInput.type = 'number'; lngInput.step = 'any';
+    lngInput.placeholder = 'Longitude'; lngInput.value = (current && current.lng != null) ? current.lng : '';
+    lngInput.style.flex = '1';
+    row1.appendChild(latInput); row1.appendChild(lngInput);
+    card.appendChild(row1);
+
+    const btnLoc = document.createElement('button');
+    btnLoc.className = 'btn small secondary'; btnLoc.type = 'button'; btnLoc.style.color = 'var(--fg)';
+    btnLoc.textContent = 'Utiliser ma position actuelle';
+    btnLoc.onclick = () => {
+      if (!('geolocation' in navigator)) { toast('Diagnostic: géolocalisation indisponible sur ce navigateur'); return; }
+      btnLoc.textContent = 'Localisation en cours…';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          latInput.value = pos.coords.latitude.toFixed(6);
+          lngInput.value = pos.coords.longitude.toFixed(6);
+          btnLoc.textContent = 'Utiliser ma position actuelle';
+        },
+        (err) => {
+          toast('Diagnostic: géoloc refusée ou indisponible — ' + err.message);
+          btnLoc.textContent = 'Utiliser ma position actuelle';
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    };
+    card.appendChild(btnLoc);
+
+    const radRow = document.createElement('div');
+    radRow.style.cssText = 'display:flex;align-items:center;gap:10px;margin-top:4px';
+    const radLabel = document.createElement('span');
+    radLabel.style.cssText = 'font-size:13px;font-weight:600;color:var(--fg)';
+    radLabel.textContent = 'Rayon (m)';
+    const radInput = document.createElement('input');
+    radInput.className = 'text'; radInput.type = 'number'; radInput.min = '20'; radInput.step = '10';
+    radInput.value = (current && current.radius) || 150;
+    radInput.style.width = '90px';
+    radRow.appendChild(radLabel); radRow.appendChild(radInput);
+    card.appendChild(radRow);
+
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:8px;margin-top:8px';
+    if (current) {
+      const btnClear = document.createElement('button');
+      btnClear.className = 'btn small secondary'; btnClear.type = 'button'; btnClear.style.color = 'var(--fg)';
+      btnClear.textContent = 'Effacer';
+      btnClear.onclick = () => { onSave(null); close(); };
+      actions.appendChild(btnClear);
+    }
+    const btnSaveZone = document.createElement('button');
+    btnSaveZone.className = 'btn small'; btnSaveZone.type = 'button';
+    btnSaveZone.textContent = 'Enregistrer';
+    btnSaveZone.style.flex = '1';
+    btnSaveZone.onclick = () => {
+      const lat = parseFloat(latInput.value);
+      const lng = parseFloat(lngInput.value);
+      const radius = parseInt(radInput.value, 10) || 150;
+      if (isNaN(lat) || isNaN(lng)) { toast('Diagnostic: latitude/longitude invalide'); return; }
+      onSave({ lat, lng, radius });
+      close();
+    };
+    actions.appendChild(btnSaveZone);
+    card.appendChild(actions);
+  });
+}
+
 function openListSheet(titleText, optionsArr, current, onPick){
   openSheet(titleText, (card, close) => {
     if (optionsArr.length === 0) {
@@ -1124,6 +1239,7 @@ function renderManageBox(){
     manageBox.appendChild(p);
     return;
   }
+  const isGeoloc = cat.trigger === 'geoloc';
   arr.forEach((v, i) => {
     const row = document.createElement('div');
     row.className = 'manageRow';
@@ -1141,6 +1257,11 @@ function renderManageBox(){
         const val = inp.value.trim();
         if (val) {
           if (pendingPick === arr[i]) pendingPick = val;
+          if (isGeoloc && val !== arr[i] && settings.zones.extra[arr[i]]) {
+            settings.zones.extra[val] = settings.zones.extra[arr[i]];
+            delete settings.zones.extra[arr[i]];
+            saveSettings(settings);
+          }
           arr[i] = val;
           saveLists(lists);
         }
@@ -1149,6 +1270,23 @@ function renderManageBox(){
       inp.addEventListener('blur', commit);
       inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
     };
+    row.appendChild(ren);
+    if (isGeoloc) {
+      const zoneBtn = document.createElement('button');
+      zoneBtn.className = 'iconBtn'; zoneBtn.type = 'button';
+      zoneBtn.textContent = '📍';
+      zoneBtn.title = settings.zones.extra[v] ? 'Zone définie' : 'Définir une zone';
+      zoneBtn.style.opacity = settings.zones.extra[v] ? '1' : '.4';
+      zoneBtn.onclick = () => {
+        openZoneSheet(settings.zones.extra[arr[i]], (newZone) => {
+          if (newZone) settings.zones.extra[arr[i]] = newZone;
+          else delete settings.zones.extra[arr[i]];
+          saveSettings(settings);
+          renderManageBox();
+        });
+      };
+      row.appendChild(zoneBtn);
+    }
     const up = document.createElement('button');
     up.className = 'iconBtn'; up.textContent = '↑'; up.type = 'button'; up.disabled = i === 0;
     up.onclick = () => { [arr[i-1],arr[i]] = [arr[i],arr[i-1]]; saveLists(lists); renderPickerSelect(); };
@@ -1158,11 +1296,12 @@ function renderManageBox(){
     const del = document.createElement('button');
     del.className = 'iconBtn'; del.textContent = '×'; del.type = 'button';
     del.onclick = () => {
+      if (isGeoloc) { delete settings.zones.extra[v]; saveSettings(settings); }
       arr.splice(i,1); saveLists(lists);
       if (pendingPick === v) pendingPick = arr[0] || '';
       renderPickerSelect();
     };
-    row.appendChild(ren); row.appendChild(up); row.appendChild(down); row.appendChild(del);
+    row.appendChild(up); row.appendChild(down); row.appendChild(del);
     manageBox.appendChild(row);
   });
 }
