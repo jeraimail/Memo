@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mémo</title>
+<title>D-charge Mentale</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -69,10 +69,10 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 .iconBtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px}
 .placeholder{padding:14px;background:var(--card);border:1px dashed var(--line);border-radius:12px;font-size:13px;color:var(--muted);line-height:1.5}
 @keyframes blinkBorderAlt{0%,100%{box-shadow:inset 0 0 0 7px var(--blink-border, #C94A4A)}50%{box-shadow:inset 0 0 0 7px var(--blink-border2, #F2C94C)}}
-@keyframes blinkCameraAlt{0%,100%{border-color:var(--blink-camera, #4A6FA5)}50%{border-color:var(--blink-camera2, #FFFFFF)}}
+@keyframes blinkCameraAlt{0%,100%{border-color:var(--blink-camera, #F2C94C)}50%{border-color:var(--blink-camera2, #C94A4A)}}
 #blinkOverlay{position:fixed;inset:0;z-index:2900;pointer-events:none}
 #blinkBorder{position:absolute;inset:0;box-shadow:inset 0 0 0 7px var(--blink-border, #C94A4A);animation:blinkBorderAlt .9s steps(1,end) infinite}
-#blinkCamera{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:50%;width:30px;height:30px;margin-left:-15px;border-radius:50%;border:5px solid var(--blink-camera, #4A6FA5);box-sizing:border-box;animation:blinkCameraAlt .9s steps(1,end) infinite}
+#blinkCamera{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:50%;width:30px;height:30px;margin-left:-15px;border-radius:50%;border:5px solid var(--blink-camera, #F2C94C);box-sizing:border-box;animation:blinkCameraAlt .9s steps(1,end) infinite}
 @keyframes alertPulse{0%,100%{box-shadow:0 -4px 20px rgba(0,0,0,.25), inset 0 0 0 3px var(--alert-color, #C94A4A)}50%{box-shadow:0 -4px 20px rgba(0,0,0,.25), inset 0 0 0 3px transparent}}
 </style>
 </head>
@@ -82,7 +82,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
   <!-- ÉCRAN LISTE -->
   <div id="screenList">
     <div style="padding:20px 20px 12px 20px;display:flex;align-items:center;justify-content:space-between;gap:7px">
-      <div style="font-size:24px;font-weight:800;flex:1">Mémo</div>
+      <div style="font-size:22px;font-weight:800;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">D-charge Mentale</div>
       <button class="headerIcon" id="btnSearch" type="button" title="Rechercher">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
@@ -104,7 +104,6 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
     <div class="tabs" id="tabs"></div>
     <div id="filters" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(40px,1fr));gap:8px;padding:12px 20px 16px 20px"></div>
     <div id="list" style="flex:1;overflow-y:auto;padding:0 20px 20px 20px;display:flex;flex-direction:column;gap:10px"></div>
-    <div id="versionInfoMain" style="font-size:10.5px;color:var(--muted);text-align:center;padding:4px 0 8px 0;opacity:.6"></div>
   </div>
 
   <!-- ÉCRAN ÉDITION -->
@@ -238,6 +237,10 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
           <input type="range" id="inpAlarmVolume" min="0" max="100" step="5" value="100" style="flex:1">
           <span id="alarmVolumeLabel" style="font-size:13px;font-weight:700;width:44px;text-align:right">100%</span>
         </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+          <span style="font-size:13px;font-weight:600;flex:1">Intervalle entre deux sons (secondes)</span>
+          <input type="number" id="inpAlarmInterval" min="5" max="600" step="5" value="30" style="width:80px;padding:8px;border:1px solid var(--border,#ddd);border-radius:8px;font-size:14px;text-align:center">
+        </div>
         <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0 0;line-height:1.4">Sur le web, ce volume s'applique en proportion du volume du téléphone et ne peut pas le dépasser. Forcer le volume système (même au minimum) ne sera possible qu'en version native.</p>
       </div>
       <div>
@@ -306,7 +309,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-12 19:26';
+const APP_VERSION = '2026-10-12 21:20';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -448,12 +451,17 @@ const STORAGE_KEY = 'memo_items_v1';
 const LISTS_KEY = 'memo_lists_v1';
 const SETTINGS_KEY = 'memo_settings_v1';
 function loadSettings(){
-  const def = { colors:{}, soundDataUrl:null, soundName:null, blinkBorderColor:'#C94A4A', blinkCameraColor:'#4A6FA5', blinkBorderColor2:'#F2C94C', blinkCameraColor2:'#FFFFFF', alarmVolume:100, zones:{ boulot:null, maison:null, extra:{} } };
+  const def = { colors:{}, soundDataUrl:null, soundName:null, blinkBorderColor:'#C94A4A', blinkCameraColor:'#F2C94C', blinkBorderColor2:'#F2C94C', blinkCameraColor2:'#C94A4A', alarmVolume:100, alarmInterval:30, zones:{ boulot:null, maison:null, extra:{} } };
   try {
     const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
     const merged = Object.assign(def, stored);
     merged.zones = Object.assign({ boulot:null, maison:null, extra:{} }, stored.zones || {});
     merged.zones.extra = merged.zones.extra || {};
+    // Migration : anciennes couleurs par défaut du cercle (bleu/blanc) -> jaune/rouge
+    if (!merged.blinkDefaultsV2) {
+      if (merged.blinkCameraColor === '#4A6FA5' && merged.blinkCameraColor2 === '#FFFFFF') { merged.blinkCameraColor = '#F2C94C'; merged.blinkCameraColor2 = '#C94A4A'; }
+      merged.blinkDefaultsV2 = true;
+    }
     return merged;
   } catch(e){ return def; }
 }
@@ -485,10 +493,10 @@ function defaultRec(){
   const d = new Date();
   const wd = (d.getDay() + 6) % 7;
   const nextHour = new Date(d);
-  nextHour.setHours(d.getHours() + 1, 0, 0, 0);
+  nextHour.setMinutes(0, 0, 0); // heure pleine actuelle (minutes à 00)
   const hh = String(nextHour.getHours()).padStart(2, '0');
   const defaultTime = hh + ':00';
-  const defaultDate = nextHour.toISOString().slice(0, 10);
+  const defaultDate = nextHour.getFullYear() + '-' + String(nextHour.getMonth() + 1).padStart(2, '0') + '-' + String(nextHour.getDate()).padStart(2, '0');
   return { kind:'recurrent', date: defaultDate, time: defaultTime, freq:'jour', interval:1, weekdays:[wd], monthMode:'jourFixe', dayOfMonth: nextHour.getDate(), positions:[1], positionWeekdays:[wd] };
 }
 
@@ -640,10 +648,10 @@ function toast(msg){
 // opts.renotify  : false pour mettre à jour sans réalerter (par défaut : true)
 async function sendCategoryNotification(catId, opts){
   opts = opts || {};
-  if (!('Notification' in window)) { toast('Diagnostic: API Notification absente'); return; }
-  if (Notification.permission !== 'granted') { toast('Diagnostic: permission = ' + Notification.permission); return; }
+  if (!('Notification' in window)) { toast('API Notification absente'); return; }
+  if (Notification.permission !== 'granted') { toast('permission = ' + Notification.permission); return; }
   const reg = await getSWReg();
-  if (!reg) { toast('Diagnostic: Service Worker non prêt'); return; }
+  if (!reg) { toast('Service Worker non prêt'); return; }
   const cat = catById(catId);
   const pending = items.filter(i => i.cat === catId && i.pendingNotif && !i.acknowledged);
   // Une notification par groupe : catégorie seule, ou catégorie + appareil/lieu pour Extra et Bluetooth/Wifi.
@@ -683,7 +691,7 @@ async function sendCategoryNotification(catId, opts){
           { action: 'edit', title: 'Modifier' },
         ],
       });
-    } catch (e) { toast('Diagnostic: erreur showNotification — ' + e.message); }
+    } catch (e) { toast('erreur showNotification — ' + e.message); }
   }
 }
 
@@ -800,7 +808,7 @@ let chargeWasCharging = false;
 
 async function startChargeWatch(){
   if (chargeWatchStarted) return;
-  if (!navigator.getBattery) { chargeWatchStarted = true; toast('Diagnostic: API batterie indisponible, détection de charge impossible'); return; }
+  if (!navigator.getBattery) { chargeWatchStarted = true; toast('API batterie indisponible, détection de charge impossible'); return; }
   chargeWatchStarted = true;
   try {
     const battery = await navigator.getBattery();
@@ -817,7 +825,7 @@ async function startChargeWatch(){
     battery.addEventListener('chargingchange', handle);
     handle();
   } catch (e) {
-    toast('Diagnostic: erreur API batterie — ' + e.message);
+    toast('erreur API batterie — ' + e.message);
   }
 }
 
@@ -830,7 +838,7 @@ function startGeoWatch(){
 
 let alertAudio = null;
 let alertSoundInterval = null;
-const ALERT_SOUND_REPEAT_MS = 30000;
+function alertRepeatMs(){ const v = parseInt(settings.alarmInterval, 10); return (isNaN(v) ? 30 : Math.max(5, Math.min(600, v))) * 1000; }
 
 function playAlertSoundOnce(){
   if (!settings.soundDataUrl) return;
@@ -841,7 +849,7 @@ function playAlertSoundOnce(){
 function startAlertSound(){
   if (alertSoundInterval) return;
   playAlertSoundOnce();
-  alertSoundInterval = setInterval(playAlertSoundOnce, ALERT_SOUND_REPEAT_MS);
+  alertSoundInterval = setInterval(playAlertSoundOnce, alertRepeatMs());
 }
 function stopAlertSound(){
   if (alertSoundInterval) { clearInterval(alertSoundInterval); alertSoundInterval = null; }
@@ -862,25 +870,37 @@ function unseenAlertItems(){
   return items.filter(i => i.pendingNotif && !i.acknowledged && !i.alertSeen && isTriggerActive(i));
 }
 
+// Clignotements d'échéance (mémos planifiés arrivés à échéance) : silencieux.
+//  - bordure d'écran = échéance d'un mémo planifié IMMÉDIAT ; cercle caméra = échéance d'un planifié DIFFÉRÉ.
+function unseenDueItems(){
+  return items.filter(i => i.dueBlink && !i.dueSeen && !i.acknowledged);
+}
+
 function updateAlertBar(){
-  const pendingCatIds = [...new Set(unseenAlertItems().map(i => i.cat))];
+  const eventItems = unseenAlertItems();
+  const dueItems = unseenDueItems();
   const bar = document.getElementById('alertBar');
   const overlay = document.getElementById('blinkOverlay');
-  if (pendingCatIds.length === 0) {
+  if (eventItems.length === 0 && dueItems.length === 0) {
     bar.classList.add('hidden');
     overlay.classList.add('hidden');
     stopAlertSound();
     return;
   }
+  const showBorder = eventItems.length > 0 || dueItems.some(i => i.dueBlink === 'screen');
+  const showCamera = dueItems.some(i => i.dueBlink === 'camera'); // alarme d'événement : son + bordure d'écran uniquement
   overlay.style.setProperty('--blink-border', settings.blinkBorderColor || '#C94A4A');
-  overlay.style.setProperty('--blink-camera', settings.blinkCameraColor || '#4A6FA5');
+  overlay.style.setProperty('--blink-camera', settings.blinkCameraColor || '#F2C94C');
   overlay.style.setProperty('--blink-border2', settings.blinkBorderColor2 || '#F2C94C');
-  overlay.style.setProperty('--blink-camera2', settings.blinkCameraColor2 || '#FFFFFF');
+  overlay.style.setProperty('--blink-camera2', settings.blinkCameraColor2 || '#C94A4A');
+  document.getElementById('blinkBorder').style.display = showBorder ? '' : 'none';
+  document.getElementById('blinkCamera').style.display = showCamera ? '' : 'none';
   overlay.classList.remove('hidden');
   bar.style.setProperty('--alert-color', settings.blinkBorderColor || '#C94A4A');
-  document.getElementById('alertBarText').textContent = unseenAlertItems().map(i => i.titre).join(' · ');
+  const titles = [...new Set(eventItems.concat(dueItems).map(i => i.titre))];
+  document.getElementById('alertBarText').textContent = titles.join(' · ');
   bar.classList.remove('hidden');
-  startAlertSound();
+  if (eventItems.length > 0) startAlertSound(); else stopAlertSound();
 }
 
 document.getElementById('btnAlertAck').addEventListener('click', () => {
@@ -888,6 +908,7 @@ document.getElementById('btnAlertAck').addEventListener('click', () => {
   // Le mémo reste en attente dans l'appli et dans la notification système tant qu'on n'a pas cliqué "Effacer".
   let changed = false;
   unseenAlertItems().forEach(i => { i.alertSeen = true; changed = true; });
+  unseenDueItems().forEach(i => { i.dueSeen = true; changed = true; });
   if (changed) saveItems(items);
   updateAlertBar();
 });
@@ -926,21 +947,24 @@ function checkDueItems(){
       item.planifie = false;
       delete item.recurrence;
       delete item.active;
+      item.dueBlink = item.mode === 'immediat' ? 'screen' : 'camera';
+      item.dueSeen = false;
       if (item.mode === 'immediat') fireImmediate(item);
     } else {
       // Avec récurrence : le mémo planifié reste en place, une copie non planifiée est créée.
-      const copy = { id: uid(), createdAt: Date.now(), titre: item.titre, cat: item.cat, mode: item.mode, planifie: false };
+      const copy = { id: uid(), createdAt: Date.now(), titre: item.titre, cat: item.cat, mode: item.mode, planifie: false, dueBlink: item.mode === 'immediat' ? 'screen' : 'camera', dueSeen: false };
       if (item.pick) copy.pick = item.pick;
       if (item.connType) copy.connType = item.connType;
       copies.push(copy);
     }
   });
   copies.forEach(c => { items.push(c); if (c.mode === 'immediat') fireImmediate(c); });
-  if (changed) { saveItems(items); render(); }
+  if (changed) { saveItems(items); render(); updateAlertBar(); }
 }
 // Migration d'anciens mémos planifiés déjà "actifs" : ils deviennent de simples mémos Immédiat/Différé.
 (function(){ let m = false; items.forEach(i => { if (i.planifie && i.active) { i.planifie = false; delete i.active; delete i.recurrence; m = true; } }); if (m) saveItems(items); })();
 checkDueItems();
+updateAlertBar();
 setInterval(checkDueItems, 60000);
 startGeoWatch();
 startChargeWatch();
@@ -1121,6 +1145,7 @@ function renderSettings(){
   const vol = settings.alarmVolume == null ? 100 : settings.alarmVolume;
   document.getElementById('inpAlarmVolume').value = vol;
   document.getElementById('alarmVolumeLabel').textContent = vol + '%';
+  document.getElementById('inpAlarmInterval').value = settings.alarmInterval == null ? 30 : settings.alarmInterval;
   colorList.innerHTML = '';
   CATEGORIES.forEach(cat => {
     const row = document.createElement('div');
@@ -1242,6 +1267,15 @@ document.getElementById('btnTestSound').addEventListener('click', () => {
   audioPreview.volume = Math.max(0, Math.min(1, (settings.alarmVolume == null ? 100 : settings.alarmVolume) / 100));
   audioPreview.play().catch(() => {});
 });
+document.getElementById('inpAlarmInterval').addEventListener('change', (e) => {
+  let v = parseInt(e.target.value, 10);
+  if (isNaN(v)) v = 30;
+  v = Math.max(5, Math.min(600, v));
+  e.target.value = v;
+  settings.alarmInterval = v;
+  saveSettings(settings);
+  if (alertSoundInterval) { clearInterval(alertSoundInterval); alertSoundInterval = setInterval(playAlertSoundOnce, alertRepeatMs()); }
+});
 document.getElementById('inpAlarmVolume').addEventListener('input', (e) => {
   settings.alarmVolume = parseInt(e.target.value, 10);
   document.getElementById('alarmVolumeLabel').textContent = settings.alarmVolume + '%';
@@ -1336,7 +1370,7 @@ function renderSearchResults(){
   });
 }
 
-function openSheet(titleText, buildFn){
+function openSheet(titleText, buildFn, onDismiss){
   const backdrop = document.createElement('div');
   backdrop.className = 'sheetBackdrop';
   const card = document.createElement('div');
@@ -1347,7 +1381,7 @@ function openSheet(titleText, buildFn){
   card.appendChild(title);
   const close = () => backdrop.remove();
   backdrop.appendChild(card);
-  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) { close(); if (onDismiss) onDismiss(); } });
   buildFn(card, close);
   document.body.appendChild(backdrop);
   return close;
@@ -1413,7 +1447,7 @@ function openZoneSheet(current, onSave){
     btnLoc.className = 'btn small secondary'; btnLoc.type = 'button'; btnLoc.style.color = 'var(--fg)';
     btnLoc.textContent = 'Utiliser ma position actuelle';
     btnLoc.onclick = () => {
-      if (!('geolocation' in navigator)) { toast('Diagnostic: géolocalisation indisponible sur ce navigateur'); return; }
+      if (!('geolocation' in navigator)) { toast('géolocalisation indisponible sur ce navigateur'); return; }
       btnLoc.textContent = 'Localisation en cours…';
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -1422,7 +1456,7 @@ function openZoneSheet(current, onSave){
           btnLoc.textContent = 'Utiliser ma position actuelle';
         },
         (err) => {
-          toast('Diagnostic: géoloc refusée ou indisponible — ' + err.message);
+          toast('géoloc refusée ou indisponible — ' + err.message);
           btnLoc.textContent = 'Utiliser ma position actuelle';
         },
         { enableHighAccuracy: true, timeout: 10000 }
@@ -1472,7 +1506,7 @@ function openZoneSheet(current, onSave){
       const lat = parseFloat(latInput.value);
       const lng = parseFloat(lngInput.value);
       const radius = parseInt(radInput.value, 10) || 150;
-      if (isNaN(lat) || isNaN(lng)) { toast('Diagnostic: latitude/longitude invalide'); return; }
+      if (isNaN(lat) || isNaN(lng)) { toast('latitude/longitude invalide'); return; }
       onSave({ lat, lng, radius });
       close();
     };
@@ -1486,7 +1520,7 @@ let mapPickerCircle = null;
 let mapPickerResolve = null;
 
 function openMapPicker(current, onPick){
-  if (typeof L === 'undefined') { toast('Diagnostic: carte indisponible (librairie non chargée — vérifie ta connexion)'); return; }
+  if (typeof L === 'undefined') { toast('carte indisponible (librairie non chargée — vérifie ta connexion)'); return; }
   mapPickerResolve = onPick;
   const startLat = (current && current.lat != null) ? current.lat : 48.8566;
   const startLng = (current && current.lng != null) ? current.lng : 2.3522;
@@ -1559,7 +1593,6 @@ function openListSheet(titleText, optionsArr, current, onPick){
 function render(){
   updatePermBanner();
   updateAlertBar();
-  document.getElementById('versionInfoMain').textContent = 'v' + APP_VERSION;
   if (searchActive) { renderSearchResults(); return; }
   renderTabs();
   if (!catById(activeFilter) && activeFilter !== 'all') activeFilter = 'all';
@@ -2059,6 +2092,42 @@ function clearCategoryNotif(catId, itemIds){
   sendCategoryNotification(catId, { renotify: false });
 }
 
+// "Effacer" dans une notification : si elle regroupe plusieurs mémos, on propose de choisir lesquels effacer.
+function handleNotifClear(catId, itemIds){
+  const list = items.filter(i => i.cat === catId && i.pendingNotif && !i.acknowledged && (!itemIds || itemIds.includes(i.id)));
+  if (list.length <= 1) { clearCategoryNotif(catId, itemIds); return; }
+  const checked = new Set();
+  openSheet('Effacer quels mémos ?', (card, close) => {
+    const rows = [];
+    const refreshBtn = () => { btnOk.disabled = checked.size === 0; btnOk.style.opacity = checked.size ? '1' : '.4'; };
+    const bar = document.createElement('div');
+    bar.style.cssText = 'display:flex;gap:8px;margin-bottom:10px';
+    const mk = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small secondary'; b.style.color = 'var(--fg)'; b.textContent = label; b.onclick = fn; return b; };
+    bar.appendChild(mk('Tout', () => { list.forEach(i => checked.add(i.id)); rows.forEach(r => r.cb.checked = true); refreshBtn(); }));
+    bar.appendChild(mk('Aucun', () => { checked.clear(); rows.forEach(r => r.cb.checked = false); refreshBtn(); }));
+    card.appendChild(bar);
+    list.forEach(i => {
+      const lab = document.createElement('label');
+      lab.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 4px;font-size:15px;border-bottom:1px solid var(--border,#eee)';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.style.cssText = 'width:20px;height:20px;flex-shrink:0';
+      cb.onchange = () => { if (cb.checked) checked.add(i.id); else checked.delete(i.id); refreshBtn(); };
+      const t = document.createElement('span'); t.textContent = i.titre;
+      lab.appendChild(cb); lab.appendChild(t); card.appendChild(lab);
+      rows.push({ cb });
+    });
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:8px;margin-top:14px';
+    const btnCancel = mk('Annuler', () => { close(); resyncCatNotif(catId); });
+    btnCancel.style.flex = '1';
+    const btnOk = document.createElement('button');
+    btnOk.type = 'button'; btnOk.className = 'btn'; btnOk.style.flex = '1'; btnOk.textContent = 'Effacer';
+    btnOk.onclick = () => { close(); clearCategoryNotif(catId, [...checked]); };
+    actions.appendChild(btnCancel); actions.appendChild(btnOk); card.appendChild(actions);
+    refreshBtn();
+  }, () => resyncCatNotif(catId));
+}
+
 function goToCatView(catId, itemIds){
   screenSettings.classList.add('hidden');
   screenArchive.classList.add('hidden');
@@ -2076,7 +2145,7 @@ function goToCatView(catId, itemIds){
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'memo-clear') clearCategoryNotif(event.data.catId, event.data.itemIds);
+    if (event.data && event.data.type === 'memo-clear') handleNotifClear(event.data.catId, event.data.itemIds);
     if (event.data && event.data.type === 'memo-catview') goToCatView(event.data.catId, event.data.itemIds);
   });
 }
@@ -2086,7 +2155,7 @@ if ('serviceWorker' in navigator) {
   const clearCat = params.get('clear');
   const catview = params.get('catview');
   const itemParam = params.get('item');
-  if (clearCat) { clearCategoryNotif(clearCat, params.get('ids') ? params.get('ids').split(',') : null); }
+  if (clearCat) { handleNotifClear(clearCat, params.get('ids') ? params.get('ids').split(',') : null); }
   else if (catview) { goToCatView(catview, itemParam ? [itemParam] : null); }
   if (clearCat || catview) history.replaceState({}, '', location.pathname);
 })();
