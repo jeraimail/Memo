@@ -1,6 +1,6 @@
 {
   "name": "D-Charge Mentale",
-  "short_name": "D-Charge Mentale",
+  "short_name": "D-Charge",
   "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",
