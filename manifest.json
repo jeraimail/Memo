@@ -1,11 +1,11 @@
 {
-  "name": "D-charge Mentale",
-  "short_name": "D-charge Mentale",
+  "name": "D-Charge Mentale",
+  "short_name": "D-Charge Mentale",
   "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#FAF9F5",
-  "theme_color": "#5B5648",
+  "background_color": "#D92F57",
+  "theme_color": "#D92F57",
   "icons": [
     {
       "src": "icon-192.png",
