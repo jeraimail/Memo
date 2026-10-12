@@ -306,7 +306,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-12 13:55';
+const APP_VERSION = '2026-10-12 19:26';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -746,7 +746,7 @@ function onZoneEnter(catId, pick, connType){
   const matching = items.filter(i =>
     i.cat === catId && !i.acknowledged && (pick ? i.pick === pick : true) &&
     (!connType || i.connType === connType) &&
-    (i.mode === 'immediat' || i.mode === 'differe')
+    !i.planifie && (i.mode === 'immediat' || i.mode === 'differe')
   );
   if (matching.length === 0) return;
   let changed = false;
@@ -912,23 +912,34 @@ async function resyncAllPendingNotifs(){
 function checkDueItems(){
   const now = new Date();
   let changed = false;
+  const copies = [];
   items.forEach(item => {
-    if (!item.planifie || item.active || !item.recurrence) return;
+    if (!item.planifie || !item.recurrence || item.acknowledged) return;
     const occ = nextOccurrence(item.recurrence, item.lastFiredOccurrence ? new Date(item.lastFiredOccurrence) : null);
     if (!occ || occ > now) return;
     const occKey = occ.toISOString();
     if (item.lastFiredOccurrence === occKey) return;
     item.lastFiredOccurrence = occKey;
     changed = true;
-    if (item.mode === 'immediat') {
-      fireImmediate(item);
-      if (item.recurrence.kind === 'unique') item.active = true;
+    if (item.recurrence.kind === 'unique') {
+      // Sans récurrence : le mémo lui-même migre vers l'onglet Immédiat / Différé (pas de copie).
+      item.planifie = false;
+      delete item.recurrence;
+      delete item.active;
+      if (item.mode === 'immediat') fireImmediate(item);
     } else {
-      item.active = true;
+      // Avec récurrence : le mémo planifié reste en place, une copie non planifiée est créée.
+      const copy = { id: uid(), createdAt: Date.now(), titre: item.titre, cat: item.cat, mode: item.mode, planifie: false };
+      if (item.pick) copy.pick = item.pick;
+      if (item.connType) copy.connType = item.connType;
+      copies.push(copy);
     }
   });
+  copies.forEach(c => { items.push(c); if (c.mode === 'immediat') fireImmediate(c); });
   if (changed) { saveItems(items); render(); }
 }
+// Migration d'anciens mémos planifiés déjà "actifs" : ils deviennent de simples mémos Immédiat/Différé.
+(function(){ let m = false; items.forEach(i => { if (i.planifie && i.active) { i.planifie = false; delete i.active; delete i.recurrence; m = true; } }); if (m) saveItems(items); })();
 checkDueItems();
 setInterval(checkDueItems, 60000);
 startGeoWatch();
