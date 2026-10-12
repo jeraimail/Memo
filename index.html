@@ -68,6 +68,10 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 .manageRow span{flex:1;font-size:13px}
 .iconBtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px}
 .placeholder{padding:14px;background:var(--card);border:1px dashed var(--line);border-radius:12px;font-size:13px;color:var(--muted);line-height:1.5}
+@keyframes blinkPulse{0%,100%{opacity:1}50%{opacity:0}}
+#blinkOverlay{position:fixed;inset:0;z-index:2900;pointer-events:none}
+#blinkBorder{position:absolute;inset:0;box-shadow:inset 0 0 0 7px var(--blink-border, #C94A4A);animation:blinkPulse .9s steps(1,end) infinite}
+#blinkCamera{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:50%;width:30px;height:30px;margin-left:-15px;border-radius:50%;border:5px solid var(--blink-camera, #4A6FA5);box-sizing:border-box;animation:blinkPulse .9s steps(1,end) infinite}
 @keyframes alertPulse{0%,100%{box-shadow:0 -4px 20px rgba(0,0,0,.25), inset 0 0 0 3px var(--alert-color, #C94A4A)}50%{box-shadow:0 -4px 20px rgba(0,0,0,.25), inset 0 0 0 3px transparent}}
 </style>
 </head>
@@ -252,7 +256,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
       </div>
       <div>
         <label class="field">Couleurs des clignotements</label>
-        <p style="font-size:12px;color:var(--muted);margin:0 0 10px 0;line-height:1.4">Utilisées plus tard pour l'alerte visuelle (bordure d'écran et cercle caméra).</p>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 10px 0;line-height:1.4">Alerte visuelle appli ouverte : bordure d'écran clignotante et cercle près de la caméra (placé en haut au centre).</p>
         <div style="display:flex;flex-direction:column;gap:10px" id="blinkColorList"></div>
       </div>
       <div id="versionInfo" style="font-size:11.5px;color:var(--muted);text-align:center;padding-top:4px"></div>
@@ -289,6 +293,8 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
   </div>
 </div>
 
+<div id="blinkOverlay" class="hidden"><div id="blinkBorder"></div><div id="blinkCamera"></div></div>
+
 <div id="alertBar" class="hidden" style="position:fixed;left:0;right:0;bottom:0;z-index:3000;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px)) 16px;background:var(--card);border-top:4px solid var(--alert-color, #C94A4A);display:flex;align-items:center;gap:12px;animation:alertPulse 1s infinite;box-shadow:0 -4px 20px rgba(0,0,0,.25)">
   <div style="flex:1;min-width:0">
     <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em">Mémo en attente</div>
@@ -299,7 +305,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-12 13:10';
+const APP_VERSION = '2026-10-12 13:24';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -858,11 +864,16 @@ function unseenAlertItems(){
 function updateAlertBar(){
   const pendingCatIds = [...new Set(unseenAlertItems().map(i => i.cat))];
   const bar = document.getElementById('alertBar');
+  const overlay = document.getElementById('blinkOverlay');
   if (pendingCatIds.length === 0) {
     bar.classList.add('hidden');
+    overlay.classList.add('hidden');
     stopAlertSound();
     return;
   }
+  overlay.style.setProperty('--blink-border', settings.blinkBorderColor || '#C94A4A');
+  overlay.style.setProperty('--blink-camera', settings.blinkCameraColor || '#4A6FA5');
+  overlay.classList.remove('hidden');
   bar.style.setProperty('--alert-color', settings.blinkBorderColor || '#C94A4A');
   document.getElementById('alertBarText').textContent = unseenAlertItems().map(i => i.titre).join(' · ');
   bar.classList.remove('hidden');
