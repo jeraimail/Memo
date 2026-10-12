@@ -306,7 +306,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-12 13:42';
+const APP_VERSION = '2026-10-12 13:55';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -851,7 +851,7 @@ function stopAlertSound(){
 // Un mémo ne sonne que si SA condition est réellement active (zone, charge, appareil connecté).
 function isTriggerActive(item){
   const cat = catById(item.cat);
-  if (cat.trigger === 'none') return true;
+  if (cat.trigger === 'none') return false; // mémo simple : notification seule, pas d'alarme
   if (cat.trigger === 'charge') return chargeWasCharging;
   if (cat.trigger === 'geoloc') return !!zoneInsideState[cat.implicitZone ? cat.id : 'extra:' + item.pick];
   if (cat.trigger === 'bluetooth') return !!simConnState[(item.connType || '') + ':' + item.pick];
@@ -1191,22 +1191,21 @@ function renderSettings(){
   const blinkList = document.getElementById('blinkColorList');
   blinkList.innerHTML = '';
   [
-    {key:'blinkBorderColor', label:'Bordure d\'écran — couleur 1'},
-    {key:'blinkBorderColor2', label:'Bordure d\'écran — couleur 2'},
-    {key:'blinkCameraColor', label:'Cercle caméra — couleur 1'},
-    {key:'blinkCameraColor2', label:'Cercle caméra — couleur 2'},
+    {label:'Bordure d\'écran', keys:['blinkBorderColor','blinkBorderColor2']},
+    {label:'Cercle caméra', keys:['blinkCameraColor','blinkCameraColor2']},
   ].forEach(b => {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:10px';
-    row.innerHTML = `
-      <span style="flex:1;font-size:14px;font-weight:600">${b.label}</span>
-      <button type="button" class="colorSwatch" style="background:${settings[b.key]}"></button>
-    `;
-    row.querySelector('.colorSwatch').addEventListener('click', () => {
-      openColorSheet(settings[b.key], (hex) => {
-        settings[b.key] = hex;
-        saveSettings(settings);
-        renderSettings();
+    row.innerHTML = `<span style="flex:1;font-size:14px;font-weight:600">${b.label}</span>` +
+      b.keys.map(k => `<button type="button" class="colorSwatch" data-key="${k}" style="background:${settings[k]}"></button>`).join('');
+    row.querySelectorAll('.colorSwatch').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const k = btn.dataset.key;
+        openColorSheet(settings[k], (hex) => {
+          settings[k] = hex;
+          saveSettings(settings);
+          renderSettings();
+        });
       });
     });
     blinkList.appendChild(row);
