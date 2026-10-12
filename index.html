@@ -68,10 +68,11 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 .manageRow span{flex:1;font-size:13px}
 .iconBtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px}
 .placeholder{padding:14px;background:var(--card);border:1px dashed var(--line);border-radius:12px;font-size:13px;color:var(--muted);line-height:1.5}
-@keyframes blinkPulse{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes blinkBorderAlt{0%,100%{box-shadow:inset 0 0 0 7px var(--blink-border, #C94A4A)}50%{box-shadow:inset 0 0 0 7px var(--blink-border2, #F2C94C)}}
+@keyframes blinkCameraAlt{0%,100%{border-color:var(--blink-camera, #4A6FA5)}50%{border-color:var(--blink-camera2, #FFFFFF)}}
 #blinkOverlay{position:fixed;inset:0;z-index:2900;pointer-events:none}
-#blinkBorder{position:absolute;inset:0;box-shadow:inset 0 0 0 7px var(--blink-border, #C94A4A);animation:blinkPulse .9s steps(1,end) infinite}
-#blinkCamera{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:50%;width:30px;height:30px;margin-left:-15px;border-radius:50%;border:5px solid var(--blink-camera, #4A6FA5);box-sizing:border-box;animation:blinkPulse .9s steps(1,end) infinite}
+#blinkBorder{position:absolute;inset:0;box-shadow:inset 0 0 0 7px var(--blink-border, #C94A4A);animation:blinkBorderAlt .9s steps(1,end) infinite}
+#blinkCamera{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:50%;width:30px;height:30px;margin-left:-15px;border-radius:50%;border:5px solid var(--blink-camera, #4A6FA5);box-sizing:border-box;animation:blinkCameraAlt .9s steps(1,end) infinite}
 @keyframes alertPulse{0%,100%{box-shadow:0 -4px 20px rgba(0,0,0,.25), inset 0 0 0 3px var(--alert-color, #C94A4A)}50%{box-shadow:0 -4px 20px rgba(0,0,0,.25), inset 0 0 0 3px transparent}}
 </style>
 </head>
@@ -305,7 +306,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-12 13:24';
+const APP_VERSION = '2026-10-12 13:42';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -447,7 +448,7 @@ const STORAGE_KEY = 'memo_items_v1';
 const LISTS_KEY = 'memo_lists_v1';
 const SETTINGS_KEY = 'memo_settings_v1';
 function loadSettings(){
-  const def = { colors:{}, soundDataUrl:null, soundName:null, blinkBorderColor:'#C94A4A', blinkCameraColor:'#4A6FA5', alarmVolume:100, zones:{ boulot:null, maison:null, extra:{} } };
+  const def = { colors:{}, soundDataUrl:null, soundName:null, blinkBorderColor:'#C94A4A', blinkCameraColor:'#4A6FA5', blinkBorderColor2:'#F2C94C', blinkCameraColor2:'#FFFFFF', alarmVolume:100, zones:{ boulot:null, maison:null, extra:{} } };
   try {
     const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
     const merged = Object.assign(def, stored);
@@ -873,6 +874,8 @@ function updateAlertBar(){
   }
   overlay.style.setProperty('--blink-border', settings.blinkBorderColor || '#C94A4A');
   overlay.style.setProperty('--blink-camera', settings.blinkCameraColor || '#4A6FA5');
+  overlay.style.setProperty('--blink-border2', settings.blinkBorderColor2 || '#F2C94C');
+  overlay.style.setProperty('--blink-camera2', settings.blinkCameraColor2 || '#FFFFFF');
   overlay.classList.remove('hidden');
   bar.style.setProperty('--alert-color', settings.blinkBorderColor || '#C94A4A');
   document.getElementById('alertBarText').textContent = unseenAlertItems().map(i => i.titre).join(' · ');
@@ -889,9 +892,21 @@ document.getElementById('btnAlertAck').addEventListener('click', () => {
   updateAlertBar();
 });
 
-function resyncAllPendingNotifs(){
-  const pendingCatIds = [...new Set(items.filter(i => i.pendingNotif && !i.acknowledged).map(i => i.cat))];
-  pendingCatIds.forEach(catId => sendCategoryNotification(catId, { renotify: false }));
+async function resyncAllPendingNotifs(){
+  const pending = items.filter(i => i.pendingNotif && !i.acknowledged);
+  if (!pending.length) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const reg = await getSWReg();
+  if (!reg) return;
+  let shown = [];
+  try { shown = await reg.getNotifications(); } catch (e) {}
+  const shownKeys = new Set(shown.map(n => n.tag));
+  const missing = {};
+  pending.forEach(i => {
+    const gk = itemGroupKey(i);
+    if (!shownKeys.has('memo-cat-' + i.cat + '|' + gk)) (missing[i.cat] = missing[i.cat] || new Set()).add(gk);
+  });
+  Object.keys(missing).forEach(catId => sendCategoryNotification(catId, { renotify: false, groupKeys: [...missing[catId]] }));
 }
 
 function checkDueItems(){
@@ -918,6 +933,7 @@ checkDueItems();
 setInterval(checkDueItems, 60000);
 startGeoWatch();
 startChargeWatch();
+setTimeout(resyncAllPendingNotifs, 800);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkDueItems(); updatePermBanner(); resyncAllPendingNotifs(); startGeoWatch(); } });
 
 function itemPickText(item, cat){
@@ -1175,8 +1191,10 @@ function renderSettings(){
   const blinkList = document.getElementById('blinkColorList');
   blinkList.innerHTML = '';
   [
-    {key:'blinkBorderColor', label:'Bordure d\'écran'},
-    {key:'blinkCameraColor', label:'Cercle caméra'},
+    {key:'blinkBorderColor', label:'Bordure d\'écran — couleur 1'},
+    {key:'blinkBorderColor2', label:'Bordure d\'écran — couleur 2'},
+    {key:'blinkCameraColor', label:'Cercle caméra — couleur 1'},
+    {key:'blinkCameraColor2', label:'Cercle caméra — couleur 2'},
   ].forEach(b => {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:10px';
