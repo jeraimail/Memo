@@ -3,6 +3,7 @@
   "short_name": "Mémo",
   "start_url": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#FAF9F5",
   "theme_color": "#5B5648",
   "icons": [
