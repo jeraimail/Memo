@@ -310,7 +310,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-13 12:08';
+const APP_VERSION = '2026-10-13 18:26';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -2094,9 +2094,17 @@ document.getElementById('btnSave').addEventListener('click', () => {
     data.recurrence = JSON.parse(JSON.stringify(pendingRec));
   }
   let newItem = null;
+  let editedItem = null;
   if (editingId) {
     const item = items.find(i => i.id === editingId);
+    const before = { mode: item.mode, planifie: !!item.planifie };
     Object.assign(item, data);
+    editedItem = item;
+    // Passage vers planifié ou différé depuis immédiat : la notification n'a plus lieu d'être (resync la retire).
+    if ((item.planifie && !before.planifie) || (!item.planifie && item.mode === 'differe' && before.mode === 'immediat')) {
+      item.pendingNotif = false;
+      delete item.alertSeen;
+    }
   } else {
     newItem = { id: uid(), createdAt: Date.now(), ...data };
     items.push(newItem);
@@ -2106,6 +2114,10 @@ document.getElementById('btnSave').addEventListener('click', () => {
   render();
   if (newItem && newItem.mode === 'immediat' && !newItem.planifie) {
     fireImmediate(newItem);
+  } else if (editedItem && editedItem.mode === 'immediat' && !editedItem.planifie && !editedItem.pendingNotif && !editedItem.acknowledged) {
+    // Mémo modifié pour devenir immédiat (depuis différé ou planifié) : la notification s'affiche maintenant.
+    fireImmediate(editedItem);
+    render();
   } else {
     resyncCatNotif(cat.id);
   }
