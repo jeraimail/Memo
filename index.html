@@ -310,7 +310,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-13 11:52';
+const APP_VERSION = '2026-10-13 12:08';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -590,24 +590,18 @@ function renderTabs(){
   });
 }
 
-// Ordre des filtres : 'type' = onglets (type) puis catégories ; 'cat' = catégories puis onglets (type).
-function filterOrder(){ return settings.filterOrder === 'cat' ? 'cat' : 'type'; }
+// Classement de la liste « Tous » : 'cat' = par catégorie puis par type ; 'type' = par type puis par catégorie.
+function listOrder(){ return settings.listOrder === 'type' ? 'type' : 'cat'; }
 function renderFilterOrder(){
-  const bar = document.getElementById('filterOrderBar');
   const btn = document.getElementById('btnFilterOrder');
-  const byCat = filterOrder() === 'cat';
-  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 16l4 4 4-4"/><path d="M17 20V4M13 8l4-4 4 4"/></svg><span>' + (byCat ? 'Catégorie › Type' : 'Type › Catégorie') + '</span>';
-  btn.onclick = () => { settings.filterOrder = byCat ? 'type' : 'cat'; saveSettings(settings); render(); };
-  const first = byCat ? filtersEl : tabsEl;
-  const second = byCat ? tabsEl : filtersEl;
-  bar.after(first); first.after(second);
-  // Mise en forme : la rangée d'onglets garde son trait du bas, les icônes ont leur marge
-  filtersEl.style.padding = byCat ? '4px 20px 12px 20px' : '12px 20px 16px 20px';
+  const byCat = listOrder() === 'cat';
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 16l4 4 4-4"/><path d="M17 20V4M13 8l4-4 4 4"/></svg><span>Classer : ' + (byCat ? 'Catégorie › Type' : 'Type › Catégorie') + '</span>';
+  btn.onclick = () => { settings.listOrder = byCat ? 'type' : 'cat'; saveSettings(settings); render(); };
 }
 
 function renderFilters(){
   filtersEl.innerHTML = '';
-  const visibleCats = CATEGORIES.filter(c => filterOrder() === 'cat' || activeTab === 'tous' || activeTab === 'planifie' || c.modes.includes(activeTab));
+  const visibleCats = CATEGORIES.filter(c => activeTab === 'tous' || activeTab === 'planifie' || c.modes.includes(activeTab));
   filtersEl.style.gridTemplateColumns = `repeat(${visibleCats.length + 1}, 1fr)`;
   const all = document.createElement('button');
   all.type = 'button';
@@ -1014,12 +1008,12 @@ function appendRows(container, itemsArr){
     if (itemsArr.length > 1) {
       const idx = itemsArr.indexOf(item);
       const arrows = document.createElement('div');
-      arrows.style.cssText = 'display:flex;flex-direction:column;gap:2px;flex-shrink:0';
+      arrows.style.cssText = 'display:flex;flex-direction:row;gap:4px;flex-shrink:0';
       const mkArrow = (dir) => {
         const b = document.createElement('button');
         b.type = 'button';
         b.setAttribute('aria-label', dir < 0 ? 'Monter' : 'Descendre');
-        b.style.cssText = 'width:30px;height:22px;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--line);border-radius:6px;color:var(--fg);cursor:pointer;padding:0';
+        b.style.cssText = 'width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--line);border-radius:6px;color:var(--fg);cursor:pointer;padding:0';
         b.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">' + (dir < 0 ? '<path d="M6 15l6-6 6 6"/>' : '<path d="M6 9l6 6 6-6"/>') + '</svg>';
         const other = itemsArr[idx + dir];
         if (!other) { b.disabled = true; b.style.opacity = '.25'; b.style.cursor = 'default'; }
@@ -1120,25 +1114,48 @@ function renderList(){
       listEl.appendChild(empty);
       return;
     }
-    const byCat = {};
-    visible.forEach(i => { (byCat[i.cat] = byCat[i.cat] || []).push(i); });
-    CATEGORIES.forEach(cat => {
-      const arr = byCat[cat.id];
-      if (!arr || arr.length === 0) return;
-      const header = document.createElement('div');
-      header.style.cssText = 'display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin:10px 2px 2px 2px';
-      header.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${catColor(cat.id)};flex-shrink:0"></span><span>${cat.label}</span>`;
-      listEl.appendChild(header);
-      ['immediat','differe','planifie'].forEach(mode => {
-        const group = arr.filter(i => itemBucket(i) === mode);
-        if (group.length === 0) return;
-        const divider = document.createElement('div');
-        divider.style.cssText = 'display:flex;align-items:center;gap:8px;margin:6px 0 2px 0';
-        divider.innerHTML = `<div style="flex:1;border-top:1px solid var(--line)"></div><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">${MODE_LABELS[mode]}</span><div style="flex:1;border-top:1px solid var(--line)"></div>`;
-        listEl.appendChild(divider);
-        listEl.appendChild(makeGroupCard(cat, group, false));
+    const hdrStyle = 'display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin:10px 2px 2px 2px';
+    const divider = (label) => {
+      const d = document.createElement('div');
+      d.style.cssText = 'display:flex;align-items:center;gap:8px;margin:6px 0 2px 0';
+      d.innerHTML = `<div style="flex:1;border-top:1px solid var(--line)"></div><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">${label}</span><div style="flex:1;border-top:1px solid var(--line)"></div>`;
+      return d;
+    };
+    const catHeader = (cat) => {
+      const h = document.createElement('div');
+      h.style.cssText = hdrStyle;
+      h.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${catColor(cat.id)};flex-shrink:0"></span><span>${cat.label}</span>`;
+      return h;
+    };
+    const MODES = ['immediat','differe','planifie'];
+    if (listOrder() === 'cat') {
+      CATEGORIES.forEach(cat => {
+        const arr = visible.filter(i => i.cat === cat.id);
+        if (arr.length === 0) return;
+        listEl.appendChild(catHeader(cat));
+        MODES.forEach(mode => {
+          const group = arr.filter(i => itemBucket(i) === mode);
+          if (group.length === 0) return;
+          listEl.appendChild(divider(MODE_LABELS[mode]));
+          listEl.appendChild(makeGroupCard(cat, group, false));
+        });
       });
-    });
+    } else {
+      MODES.forEach(mode => {
+        const arrMode = visible.filter(i => itemBucket(i) === mode);
+        if (arrMode.length === 0) return;
+        const h = document.createElement('div');
+        h.style.cssText = hdrStyle;
+        h.innerHTML = `<span>${MODE_LABELS[mode]}</span>`;
+        listEl.appendChild(h);
+        CATEGORIES.forEach(cat => {
+          const group = arrMode.filter(i => i.cat === cat.id);
+          if (group.length === 0) return;
+          listEl.appendChild(divider(cat.label));
+          listEl.appendChild(makeGroupCard(cat, group, false));
+        });
+      });
+    }
     return;
   }
 
@@ -1639,7 +1656,6 @@ function render(){
   if (searchActive) { renderSearchResults(); return; }
   renderTabs();
   if (!catById(activeFilter) && activeFilter !== 'all') activeFilter = 'all';
-  if (filterOrder() === 'type' && activeFilter !== 'all' && !(activeTab === 'tous' || activeTab === 'planifie' || catById(activeFilter).modes.includes(activeTab))) activeFilter = 'all';
   renderFilterOrder();
   renderFilters();
   renderList();
