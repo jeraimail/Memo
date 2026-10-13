@@ -101,6 +101,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
       <span style="flex:1;font-size:12.5px;color:var(--muted);line-height:1.4">Les notifications sont désactivées — les mémos ne pourront pas s'afficher.</span>
       <button class="btn small" id="btnEnableNotif" type="button" style="width:auto">Activer</button>
     </div>
+    <div id="filterOrderBar" style="display:flex;justify-content:flex-end;padding:0 20px 8px 20px"><button type="button" id="btnFilterOrder" class="chip" style="display:flex;align-items:center;gap:6px;font-size:11.5px"></button></div>
     <div class="tabs" id="tabs"></div>
     <div id="filters" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(40px,1fr));gap:8px;padding:12px 20px 16px 20px"></div>
     <div id="list" style="flex:1;overflow-y:auto;padding:0 20px 20px 20px;display:flex;flex-direction:column;gap:10px"></div>
@@ -309,7 +310,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-12 21:20';
+const APP_VERSION = '2026-10-13 11:52';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -441,10 +442,10 @@ function nextOccurrence(rec, searchFrom){
 }
 
 const TABS = [
+  { id: 'tous',     label: 'Tous' },
   { id: 'immediat', label: 'Immédiat' },
   { id: 'differe',  label: 'Différé' },
   { id: 'planifie', label: 'Planifié' },
-  { id: 'tous',     label: 'Tous' },
 ];
 
 const STORAGE_KEY = 'memo_items_v1';
@@ -480,7 +481,7 @@ function catIndex(id){ return CATEGORIES.findIndex(c => c.id === id); }
 let items = loadItems();
 let lists = loadLists();
 let settings = loadSettings();
-let activeTab = 'immediat';
+let activeTab = 'tous';
 let activeFilter = 'all';
 let editingId = null;
 let pendingCat = CATEGORIES[0].id;
@@ -589,9 +590,24 @@ function renderTabs(){
   });
 }
 
+// Ordre des filtres : 'type' = onglets (type) puis catégories ; 'cat' = catégories puis onglets (type).
+function filterOrder(){ return settings.filterOrder === 'cat' ? 'cat' : 'type'; }
+function renderFilterOrder(){
+  const bar = document.getElementById('filterOrderBar');
+  const btn = document.getElementById('btnFilterOrder');
+  const byCat = filterOrder() === 'cat';
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 16l4 4 4-4"/><path d="M17 20V4M13 8l4-4 4 4"/></svg><span>' + (byCat ? 'Catégorie › Type' : 'Type › Catégorie') + '</span>';
+  btn.onclick = () => { settings.filterOrder = byCat ? 'type' : 'cat'; saveSettings(settings); render(); };
+  const first = byCat ? filtersEl : tabsEl;
+  const second = byCat ? tabsEl : filtersEl;
+  bar.after(first); first.after(second);
+  // Mise en forme : la rangée d'onglets garde son trait du bas, les icônes ont leur marge
+  filtersEl.style.padding = byCat ? '4px 20px 12px 20px' : '12px 20px 16px 20px';
+}
+
 function renderFilters(){
   filtersEl.innerHTML = '';
-  const visibleCats = CATEGORIES.filter(c => activeTab === 'tous' || activeTab === 'planifie' || c.modes.includes(activeTab));
+  const visibleCats = CATEGORIES.filter(c => filterOrder() === 'cat' || activeTab === 'tous' || activeTab === 'planifie' || c.modes.includes(activeTab));
   filtersEl.style.gridTemplateColumns = `repeat(${visibleCats.length + 1}, 1fr)`;
   const all = document.createElement('button');
   all.type = 'button';
@@ -995,6 +1011,33 @@ function appendRows(container, itemsArr){
       </div>
     `;
     row.onclick = () => openEdit(item.id);
+    if (itemsArr.length > 1) {
+      const idx = itemsArr.indexOf(item);
+      const arrows = document.createElement('div');
+      arrows.style.cssText = 'display:flex;flex-direction:column;gap:2px;flex-shrink:0';
+      const mkArrow = (dir) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.setAttribute('aria-label', dir < 0 ? 'Monter' : 'Descendre');
+        b.style.cssText = 'width:30px;height:22px;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--line);border-radius:6px;color:var(--fg);cursor:pointer;padding:0';
+        b.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">' + (dir < 0 ? '<path d="M6 15l6-6 6 6"/>' : '<path d="M6 9l6 6 6-6"/>') + '</svg>';
+        const other = itemsArr[idx + dir];
+        if (!other) { b.disabled = true; b.style.opacity = '.25'; b.style.cursor = 'default'; }
+        b.onclick = (e) => {
+          e.stopPropagation();
+          if (!other) return;
+          const a = items.indexOf(item), c = items.indexOf(other);
+          if (a < 0 || c < 0) return;
+          items[a] = other; items[c] = item;
+          saveItems(items);
+          render();
+          resyncCatNotif(item.cat);
+        };
+        return b;
+      };
+      arrows.appendChild(mkArrow(-1)); arrows.appendChild(mkArrow(1));
+      row.appendChild(arrows);
+    }
     container.appendChild(row);
   });
 }
@@ -1596,6 +1639,8 @@ function render(){
   if (searchActive) { renderSearchResults(); return; }
   renderTabs();
   if (!catById(activeFilter) && activeFilter !== 'all') activeFilter = 'all';
+  if (filterOrder() === 'type' && activeFilter !== 'all' && !(activeTab === 'tous' || activeTab === 'planifie' || catById(activeFilter).modes.includes(activeTab))) activeFilter = 'all';
+  renderFilterOrder();
   renderFilters();
   renderList();
 }
