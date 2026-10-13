@@ -310,7 +310,7 @@ label.field{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = '2026-10-13 18:26';
+const APP_VERSION = '2026-10-13 19:03';
 const TRANSPARENT_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUAAarVyFEAAAAASUVORK5CYII=';
 const ICONS = {
   memo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
@@ -693,7 +693,7 @@ async function sendCategoryNotification(catId, opts){
         tag: 'memo-cat-' + catId + '|' + groupKey,
         requireInteraction: true,
         renotify: opts.renotify !== false,
-        icon: TRANSPARENT_PIXEL,
+        icon: './icon-192.png',
         badge: './icon-badge.png',
         data: { catId, groupKey, itemIds: group.map(i => i.id) },
         actions: [
